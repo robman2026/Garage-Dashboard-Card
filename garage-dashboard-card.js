@@ -1,7 +1,7 @@
 /**
  * Garage Dashboard Card
  * A custom Home Assistant card for comprehensive garage monitoring and control.
- * https://github.com/yourusername/garage-dashboard-card
+ * https://github.com/robman2026/garage-dashboard-card
  */
 
 class GarageDashboardCard extends HTMLElement {
@@ -31,7 +31,8 @@ class GarageDashboardCard extends HTMLElement {
       door_sensor: config.door_sensor || null,
       motion_sensor: config.motion_sensor || null,
       door_ctrl: config.door_ctrl || null,
-      camera_refresh_interval: config.camera_refresh_interval || 100,
+      distance_entity: config.distance_entity || null,
+      camera_refresh_interval: config.camera_refresh_interval || 5000,
       temp_min: config.temp_min || 0,
       temp_max: config.temp_max || 40,
     };
@@ -144,8 +145,10 @@ class GarageDashboardCard extends HTMLElement {
   }
 
   handleLightToggle() {
-    if (!this._config.light_entity) return;
-    this.callService("light", "toggle", { entity_id: this._config.light_entity });
+    const eid = this._config.light_entity;
+    if (!eid || !this._hass) return;
+    // homeassistant.toggle works universally across light, switch, input_boolean, etc.
+    this.callService("homeassistant", "toggle", { entity_id: eid });
   }
 
   handleCoverSimpleToggle() {
@@ -163,21 +166,56 @@ class GarageDashboardCard extends HTMLElement {
     return `/api/camera_proxy/${this._config.camera_entity}?token=${token}&t=${Date.now()}`;
   }
 
+  _setupCameraStream() {
+    const camSection = this.shadowRoot.getElementById("camera-section");
+    if (!camSection || !this._config.camera_entity || !this._hass) return;
+    camSection.style.display = "";
+
+    const stream = this.shadowRoot.getElementById("garage-camera-stream");
+    if (stream) {
+      const stateObj = this.getState(this._config.camera_entity);
+      // Only update if stateObj actually changed (avoid thrashing the stream)
+      if (stream._lastStateObj !== stateObj) {
+        stream._lastStateObj = stateObj;
+        stream.hass = this._hass;
+        stream.stateObj = stateObj;
+        // Trigger Lit-based element update if available
+        if (typeof stream.requestUpdate === "function") stream.requestUpdate();
+      }
+    }
+
+    // Attach click → HA more-info fullscreen dialog (only once)
+    const wrapper = this.shadowRoot.getElementById("camera-wrapper");
+    if (wrapper && !wrapper._listenerAttached) {
+      wrapper._listenerAttached = true;
+      wrapper.addEventListener("click", (e) => {
+        // Don't intercept clicks on stream controls (play/pause etc.)
+        if (e.target !== wrapper && e.target.closest("ha-camera-stream")) return;
+        const event = new CustomEvent("hass-more-info", {
+          bubbles: true,
+          composed: true,
+          detail: { entityId: this._config.camera_entity },
+        });
+        this.dispatchEvent(event);
+      });
+    }
+  }
+
+  // Keep for fallback thumbnail if ha-camera-stream unavailable
   refreshCamera() {
-    const img = this.shadowRoot.getElementById("garage-camera");
-    if (img) {
-      const url = this.getCameraUrl();
-      if (url) img.src = url;
+    const stream = this.shadowRoot.getElementById("garage-camera-stream");
+    if (stream && this._hass) {
+      stream.hass = this._hass;
+      stream.stateObj = this.getState(this._config.camera_entity);
     }
   }
 
   startCameraRefresh() {
     this.stopCameraRefresh();
+    // ha-camera-stream handles its own streaming — no polling needed.
+    // We still set up a light refresh to keep stateObj current (e.g. token rotation)
     if (this._config.camera_entity) {
-      this._cameraRefreshInterval = setInterval(
-        () => this.refreshCamera(),
-        this._config.camera_refresh_interval
-      );
+      this._cameraRefreshInterval = setInterval(() => this.refreshCamera(), 30000);
     }
   }
 
@@ -185,6 +223,14 @@ class GarageDashboardCard extends HTMLElement {
     if (this._cameraRefreshInterval) {
       clearInterval(this._cameraRefreshInterval);
       this._cameraRefreshInterval = null;
+    }
+  }
+
+  connectedCallback() {
+    // Re-initialize camera stream when card is re-attached to DOM
+    if (this._config && this._hass) {
+      this.startCameraRefresh();
+      this._setupCameraStream();
     }
   }
 
@@ -249,7 +295,7 @@ class GarageDashboardCard extends HTMLElement {
             </div>
           </div>
           <div class="cover-controls">
-            <button class="ctrl-btn" id="btn-open" title="Open" onclick="">
+            <button class="ctrl-btn" id="btn-open" title="Open">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zm8-16L4 9h4v7h8V9h4z"/></svg>
             </button>
             <button class="ctrl-btn ctrl-stop" id="btn-stop" title="Stop">
@@ -261,11 +307,19 @@ class GarageDashboardCard extends HTMLElement {
           </div>
         </div>
 
-        <!-- Camera Feed -->
+        <!-- Camera Feed — live stream via ha-camera-stream -->
         <div class="section camera-section" id="camera-section" style="display:none">
-          <img id="garage-camera" class="camera-feed" alt="Garage Camera" />
-          <div class="camera-overlay">
-            <span class="camera-label">Garage</span>
+          <div class="camera-wrapper" id="camera-wrapper">
+            <ha-camera-stream
+              id="garage-camera-stream"
+              allow-exoplayer
+              muted
+              playsinline
+            ></ha-camera-stream>
+            <div class="camera-overlay">
+              <span class="camera-label">Garage</span>
+            </div>
+            <div class="camera-fullscreen-hint">⛶ Fullscreen</div>
           </div>
         </div>
 
@@ -322,6 +376,7 @@ class GarageDashboardCard extends HTMLElement {
 
     this.addEventListeners();
     this.startCameraRefresh();
+    this._setupCameraStream();
     this.updateStates();
   }
 
@@ -384,14 +439,8 @@ class GarageDashboardCard extends HTMLElement {
       dot.style.backgroundColor = isOpen ? "#ef4444" : "#22c55e";
     }
 
-    // Camera
-    const camSection = root.getElementById("camera-section");
-    if (this._config.camera_entity && camSection) {
-      camSection.style.display = "";
-      const url = this.getCameraUrl();
-      const img = root.getElementById("garage-camera");
-      if (img && url && !img.src.includes(this._config.camera_entity)) img.src = url;
-    }
+    // Camera — delegate to stream setup
+    this._setupCameraStream();
 
     // Cover Simple
     const simpleState = this.getStateValue(this._config.cover_simple);
@@ -424,15 +473,19 @@ class GarageDashboardCard extends HTMLElement {
     // Sensor state colors
     const motionState = this.getStateValue(this._config.motion_sensor);
     const motionChip = root.getElementById("motion-sensor-chip");
-    if (motionChip) motionChip.classList.toggle("sensor-active", motionState === "on");
+    if (motionChip) motionChip.classList.toggle("sensor-active", motionState === "on" || motionState === "detected");
 
     const doorSensorState = this.getStateValue(this._config.door_sensor);
     const doorChip = root.getElementById("door-sensor-chip");
     if (doorChip) doorChip.classList.toggle("sensor-active", doorSensorState === "on" || doorSensorState === "open");
 
-    const doorctrlSensorState = this.getStateValue(this._config.door_sensor);
-    const doorctrlChip = root.getElementById("door-sensor-chip");
-    if (doorctrlChip) doorctrlChip.classList.toggle("sensor-active", doorctrlSensorState === "on" || doorctrlSensorState === "open");
+    // Ușa CTRL — cover entity: open/opening = active (amber), closed = dim
+    const ctrlState = this.getStateValue(this._config.door_ctrl);
+    const ctrlChip = root.getElementById("ctrl-sensor-chip");
+    if (ctrlChip) {
+      const ctrlOpen = ctrlState === "open" || ctrlState === "opening" || ctrlState === "on";
+      ctrlChip.classList.toggle("sensor-active", ctrlOpen);
+    }
   }
 
   styles() {
@@ -645,14 +698,47 @@ class GarageDashboardCard extends HTMLElement {
         padding: 0;
         position: relative;
         overflow: hidden;
+      }
+
+      .camera-wrapper {
+        position: relative;
+        width: 100%;
+        cursor: pointer;
+        display: block;
+        line-height: 0;
+      }
+
+      ha-camera-stream {
+        width: 100%;
+        display: block;
         max-height: 220px;
+        object-fit: cover;
+        --video-border-radius: 0;
       }
 
       .camera-feed {
         width: 100%;
         display: block;
         object-fit: cover;
-        filter: brightness(0.95);
+        max-height: 220px;
+      }
+
+      .camera-fullscreen-hint {
+        position: absolute;
+        top: 8px;
+        right: 10px;
+        background: rgba(0,0,0,0.5);
+        color: #94a3b8;
+        font-size: 0.9rem;
+        padding: 3px 7px;
+        border-radius: 6px;
+        opacity: 0;
+        transition: opacity 0.2s;
+        pointer-events: none;
+      }
+
+      .camera-wrapper:hover .camera-fullscreen-hint {
+        opacity: 1;
       }
 
       .camera-overlay {
@@ -755,6 +841,14 @@ class GarageDashboardCard extends HTMLElement {
         background: #1c1a0a;
       }
 
+      .sensor-chip.sensor-active .sensor-name {
+        color: #fcd34d;
+      }
+
+      .sensor-chip.sensor-active .sensor-time {
+        color: #f59e0b;
+      }
+
       .sensor-icon {
         width: 28px;
         height: 28px;
@@ -812,6 +906,7 @@ class GarageDashboardCard extends HTMLElement {
       door_sensor: "binary_sensor.usa_garaj",
       motion_sensor: "binary_sensor.miscare",
       door_ctrl: "cover.usa_garaj_ctrl",
+      distance_entity: "sensor.garaj_distance",
     };
   }
 }
@@ -841,6 +936,7 @@ class GarageDashboardCardEditor extends HTMLElement {
       { key: "door_sensor", label: "Door Binary Sensor", type: "text" },
       { key: "motion_sensor", label: "Motion Sensor", type: "text" },
       { key: "door_ctrl", label: "Door Control Entity", type: "text" },
+      { key: "distance_entity", label: "Distance Sensor (optional)", type: "text" },
       { key: "camera_refresh_interval", label: "Camera Refresh (ms)", type: "number" },
     ];
   }
