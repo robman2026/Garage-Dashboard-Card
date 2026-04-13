@@ -31,8 +31,7 @@ class GarageDashboardCard extends HTMLElement {
       door_sensor: config.door_sensor || null,
       motion_sensor: config.motion_sensor || null,
       door_ctrl: config.door_ctrl || null,
-      distance_entity: config.distance_entity || null,
-      camera_refresh_interval: config.camera_refresh_interval || 5000,
+      camera_refresh_interval: config.camera_refresh_interval || 100,
       temp_min: config.temp_min || 0,
       temp_max: config.temp_max || 40,
     };
@@ -809,7 +808,6 @@ class GarageDashboardCard extends HTMLElement {
       door_sensor: "binary_sensor.usa_garaj",
       motion_sensor: "binary_sensor.miscare",
       door_ctrl: "cover.usa_garaj_ctrl",
-      distance_entity: "sensor.garaj_distance",
     };
   }
 }
@@ -839,7 +837,6 @@ class GarageDashboardCardEditor extends HTMLElement {
       { key: "door_sensor", label: "Door Binary Sensor", type: "text" },
       { key: "motion_sensor", label: "Motion Sensor", type: "text" },
       { key: "door_ctrl", label: "Door Control Entity", type: "text" },
-      { key: "distance_entity", label: "Distance Sensor (optional)", type: "text" },
       { key: "camera_refresh_interval", label: "Camera Refresh (ms)", type: "number" },
     ];
   }
@@ -881,7 +878,7 @@ window.customCards.push({
   name: "Garage Dashboard Card",
   description: "A comprehensive garage monitoring and control card with camera, sensors, covers, and climate data.",
   preview: true,
-  documentationURL: "https://github.com/yourusername/garage-dashboard-card",
+  documentationURL: "https://github.com/robman2026/garage-dashboard-card",
 });
 
 console.info(
