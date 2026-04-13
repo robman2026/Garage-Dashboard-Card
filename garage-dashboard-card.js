@@ -429,6 +429,10 @@ class GarageDashboardCard extends HTMLElement {
     const doorSensorState = this.getStateValue(this._config.door_sensor);
     const doorChip = root.getElementById("door-sensor-chip");
     if (doorChip) doorChip.classList.toggle("sensor-active", doorSensorState === "on" || doorSensorState === "open");
+
+    const doorctrlSensorState = this.getStateValue(this._config.door_sensor);
+    const doorctrlChip = root.getElementById("door-sensor-chip");
+    if (doorctrlChip) doorctrlChip.classList.toggle("sensor-active", doorctrlSensorState === "on" || doorctrlSensorState === "open");
   }
 
   styles() {
