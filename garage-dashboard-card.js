@@ -257,23 +257,14 @@ class GarageDashboardCard extends HTMLElement {
               <svg class="gauge-ring-svg" viewBox="0 0 100 100" overflow="visible">
                 <defs>
                   <filter id="gf-temp" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
-                    <!-- wide soft outer glow -->
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow-wide"/>
-                    <!-- tight inner edge glow -->
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="glow-tight"/>
-                    <feMerge>
-                      <feMergeNode in="glow-wide"/>
-                      <feMergeNode in="glow-tight"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="gw"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="gt"/>
+                    <feMerge><feMergeNode in="gw"/><feMergeNode in="gt"/><feMergeNode in="SourceGraphic"/></feMerge>
                   </filter>
                 </defs>
-                <circle class="g-track" cx="50" cy="50" r="44"/>
+                <circle class="g-track" cx="50" cy="50" r="44" stroke-dasharray="230 9999" transform="rotate(120 50 50)"/>
                 <circle id="temp-ring" class="g-arc" cx="50" cy="50" r="44"
-                  filter="url(#gf-temp)"
-                  stroke-dasharray="245 30"
-                  stroke-dashoffset="184"
-                  transform="rotate(126 50 50)"/>
+                  filter="url(#gf-temp)" stroke-dasharray="0 9999" transform="rotate(120 50 50)"/>
               </svg>
               <div class="gauge-inner">
                 <svg class="gauge-svg-icon" viewBox="0 0 24 24" width="16" height="16">
@@ -284,7 +275,7 @@ class GarageDashboardCard extends HTMLElement {
                   <line x1="14" y1="10" x2="16" y2="10" stroke="#e53e3e" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
                 <div class="gauge-value" id="temp-val">--.-<sup>°C</sup></div>
-                <div class="gauge-label">TEMPERATURE</div>
+                <div class="gauge-label" id="temp-label">TEMPERATURE</div>
               </div>
             </div>
 
@@ -294,21 +285,14 @@ class GarageDashboardCard extends HTMLElement {
               <svg class="gauge-ring-svg" viewBox="0 0 100 100" overflow="visible">
                 <defs>
                   <filter id="gf-hum" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow-wide"/>
-                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="glow-tight"/>
-                    <feMerge>
-                      <feMergeNode in="glow-wide"/>
-                      <feMergeNode in="glow-tight"/>
-                      <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="gw"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="gt"/>
+                    <feMerge><feMergeNode in="gw"/><feMergeNode in="gt"/><feMergeNode in="SourceGraphic"/></feMerge>
                   </filter>
                 </defs>
-                <circle class="g-track" cx="50" cy="50" r="44"/>
+                <circle class="g-track" cx="50" cy="50" r="44" stroke-dasharray="230 9999" transform="rotate(120 50 50)"/>
                 <circle id="hum-ring" class="g-arc" cx="50" cy="50" r="44"
-                  filter="url(#gf-hum)"
-                  stroke-dasharray="245 30"
-                  stroke-dashoffset="100"
-                  transform="rotate(126 50 50)"/>
+                  filter="url(#gf-hum)" stroke-dasharray="0 9999" transform="rotate(120 50 50)"/>
               </svg>
               <div class="gauge-inner">
                 <svg class="gauge-svg-icon" viewBox="0 0 24 24" width="16" height="16">
@@ -317,7 +301,7 @@ class GarageDashboardCard extends HTMLElement {
                   <ellipse cx="9.5" cy="13" rx="1.2" ry="2" fill="white" opacity="0.4" transform="rotate(-25 9.5 13)"/>
                 </svg>
                 <div class="gauge-value" id="hum-val">--<sup>%</sup></div>
-                <div class="gauge-label">HUMIDITY</div>
+                <div class="gauge-label" id="hum-label">HUMIDITY</div>
               </div>
             </div>
 
@@ -436,28 +420,50 @@ class GarageDashboardCard extends HTMLElement {
     if (!this._hass || !this._config) return;
     const root = this.shadowRoot;
 
-    // Temp & humidity glowing gauges
-    // Arc: r=44, 300° sweep, dasharray=249 gap=28, rotate(126°) = starts at 7 o'clock
-    const CIRC = 245;
+    // ── Temp & humidity gauges ───────────────────────────────────────────────
+    // Arc geometry: r=44, 300° sweep = 2π×44×(300/360) = 230.4 ≈ 230
+    // We render a partial arc by setting stroke-dasharray to "${filled} 9999"
+    // so the visible dash equals exactly the filled portion, with no wrap-around gap.
+    const ARC_LEN = 230; // total swept arc length in SVG units
     const temp = this.getStateValue(this._config.temp_sensor);
     const hum  = this.getStateValue(this._config.humidity_sensor);
+    const tempUnit = this._config.temp_unit || "°C";
 
     if (root.getElementById("temp-val")) {
       root.getElementById("temp-val").innerHTML =
-        temp !== "unavailable" ? `${this.formatTemp(temp)}<sup>°C</sup>` : `--.-<sup>°C</sup>`;
+        temp !== "unavailable"
+          ? `${this.formatTemp(temp)}<sup>${tempUnit}</sup>`
+          : `--.-<sup>${tempUnit}</sup>`;
     }
     if (root.getElementById("hum-val")) {
       root.getElementById("hum-val").innerHTML =
         hum !== "unavailable" ? `${this.formatHum(hum)}<sup>%</sup>` : `--<sup>%</sup>`;
     }
 
+    // Update configurable display labels
+    const tempLbl = root.getElementById("temp-label");
+    if (tempLbl) tempLbl.textContent = (this._config.temp_label || "TEMPERATURE").toUpperCase();
+    const humLbl = root.getElementById("hum-label");
+    if (humLbl) humLbl.textContent = (this._config.hum_label || "HUMIDITY").toUpperCase();
+
+    // Update card title
+    const titleEl = root.querySelector(".card-title");
+    if (titleEl) titleEl.textContent = this._config.title || "Garaj";
+
+    // Update cover/sensor display names
+    const coverNameEl = root.querySelector(".entity-name");
+    if (coverNameEl) coverNameEl.textContent = this._config.cover_name || "Ușa la Garaj";
+
     const tempRing = root.getElementById("temp-ring");
     const tempWrap = root.getElementById("temp-gauge-wrap");
     if (tempRing && temp !== "unavailable") {
       const t = parseFloat(temp);
-      const pct = Math.max(0, Math.min(1, t / 50));
+      const tMin = this._config.temp_min ?? 0;
+      const tMax = this._config.temp_max ?? 50;
+      const pct = Math.max(0, Math.min(1, (t - tMin) / (tMax - tMin)));
+      const filled = (ARC_LEN * pct).toFixed(1);
       const color = this._tempColor(t);
-      tempRing.setAttribute("stroke-dashoffset", (CIRC * (1 - pct)).toFixed(1));
+      tempRing.setAttribute("stroke-dasharray", `${filled} 9999`);
       tempRing.setAttribute("stroke", color);
       if (tempWrap) tempWrap.style.setProperty("--glow-color", color);
     }
@@ -467,8 +473,9 @@ class GarageDashboardCard extends HTMLElement {
     if (humRing && hum !== "unavailable") {
       const h = parseFloat(hum);
       const pct = Math.max(0, Math.min(1, h / 100));
+      const filled = (ARC_LEN * pct).toFixed(1);
       const color = this._humColor(h);
-      humRing.setAttribute("stroke-dashoffset", (CIRC * (1 - pct)).toFixed(1));
+      humRing.setAttribute("stroke-dasharray", `${filled} 9999`);
       humRing.setAttribute("stroke", color);
       if (humWrap) humWrap.style.setProperty("--glow-color", color);
     }
@@ -520,6 +527,17 @@ class GarageDashboardCard extends HTMLElement {
       root.getElementById("motion-time").textContent = this.relativeTime(this._config.motion_sensor);
     if (root.getElementById("ctrl-time"))
       root.getElementById("ctrl-time").textContent = this.relativeTime(this._config.door_ctrl);
+
+    // Update configurable sensor display names
+    const doorNameEl = root.querySelector("#door-sensor-chip .sensor-name");
+    if (doorNameEl) doorNameEl.textContent = this._config.door_sensor_name || "Ușa garaj";
+    const motionNameEl = root.querySelector("#motion-sensor-chip .sensor-name");
+    if (motionNameEl) motionNameEl.textContent = this._config.motion_sensor_name || "Mișcare";
+    const ctrlNameEl = root.querySelector("#ctrl-sensor-chip .sensor-name");
+    if (ctrlNameEl) ctrlNameEl.textContent = this._config.door_ctrl_name || "Ușa CTRL";
+    // Update toggle labels
+    const lightLabelEl = root.querySelector("#toggle-light .toggle-label");
+    if (lightLabelEl) lightLabelEl.textContent = this._config.light_name || "Lumina Garaj";
 
     // Sensor state colors
     const motionState = this.getStateValue(this._config.motion_sensor);
@@ -673,12 +691,13 @@ class GarageDashboardCard extends HTMLElement {
       }
 
       .gauge-value {
-        font-size: 1.35rem;
-        font-weight: 800;
+        font-size: 1.5rem;
+        font-weight: 900;
         color: #ffffff;
         line-height: 1;
-        letter-spacing: -0.04em;
+        letter-spacing: -0.05em;
         white-space: nowrap;
+        text-shadow: 0 0 12px rgba(255,255,255,0.5), 0 1px 3px rgba(0,0,0,0.9);
       }
 
       .gauge-value sup {
@@ -1019,19 +1038,58 @@ class GarageDashboardCardEditor extends HTMLElement {
     this.render();
   }
 
-  get _fields() {
+  get _sections() {
     return [
-      { key: "title", label: "Card Title", type: "text" },
-      { key: "temp_sensor", label: "Temperature Sensor", type: "text" },
-      { key: "humidity_sensor", label: "Humidity Sensor", type: "text" },
-      { key: "cover_entity", label: "Cover Entity (with controls)", type: "text" },
-      { key: "cover_simple", label: "Cover Simple Toggle", type: "text" },
-      { key: "light_entity", label: "Light Entity", type: "text" },
-      { key: "camera_entity", label: "Camera Entity", type: "text" },
-      { key: "door_sensor", label: "Door Binary Sensor", type: "text" },
-      { key: "motion_sensor", label: "Motion Sensor", type: "text" },
-      { key: "door_ctrl", label: "Door Control Entity", type: "text" },
-      { key: "camera_refresh_interval", label: "Camera Refresh (ms)", type: "number" },
+      {
+        title: "General",
+        fields: [
+          { key: "title", label: "Card Name", type: "text", placeholder: "Garaj" },
+        ]
+      },
+      {
+        title: "Climate Sensors",
+        fields: [
+          { key: "temp_sensor", label: "Temperature Entity", type: "text", placeholder: "sensor.garage_temperature" },
+          { key: "humidity_sensor", label: "Humidity Entity", type: "text", placeholder: "sensor.garage_humidity" },
+          { key: "temp_label", label: "Temperature Display Name", type: "text", placeholder: "TEMPERATURE" },
+          { key: "hum_label", label: "Humidity Display Name", type: "text", placeholder: "HUMIDITY" },
+          { key: "temp_unit", label: "Temperature Unit", type: "text", placeholder: "°C" },
+          { key: "temp_min", label: "Temp Min (°C)", type: "number", placeholder: "0" },
+          { key: "temp_max", label: "Temp Max (°C)", type: "number", placeholder: "50" },
+        ]
+      },
+      {
+        title: "Cover / Door",
+        fields: [
+          { key: "cover_entity", label: "Main Cover Entity", type: "text", placeholder: "cover.usa_la_garaj" },
+          { key: "cover_name", label: "Cover Display Name", type: "text", placeholder: "Ușa la Garaj" },
+          { key: "cover_simple", label: "Simple Cover Toggle Entity", type: "text", placeholder: "cover.garage_door_simple" },
+        ]
+      },
+      {
+        title: "Light",
+        fields: [
+          { key: "light_entity", label: "Light Entity", type: "text", placeholder: "light.lumina_garaj" },
+          { key: "light_name", label: "Light Display Name", type: "text", placeholder: "Lumina Garaj" },
+        ]
+      },
+      {
+        title: "Camera",
+        fields: [
+          { key: "camera_entity", label: "Camera Entity", type: "text", placeholder: "camera.garage" },
+        ]
+      },
+      {
+        title: "Sensors Row",
+        fields: [
+          { key: "door_sensor", label: "Door Binary Sensor", type: "text", placeholder: "binary_sensor.usa_garaj" },
+          { key: "door_sensor_name", label: "Door Sensor Name", type: "text", placeholder: "Ușa garaj" },
+          { key: "motion_sensor", label: "Motion Sensor", type: "text", placeholder: "binary_sensor.miscare" },
+          { key: "motion_sensor_name", label: "Motion Sensor Name", type: "text", placeholder: "Mișcare" },
+          { key: "door_ctrl", label: "Door Control Entity", type: "text", placeholder: "cover.usa_garaj_ctrl" },
+          { key: "door_ctrl_name", label: "Door Control Name", type: "text", placeholder: "Ușa CTRL" },
+        ]
+      },
     ];
   }
 
@@ -1043,22 +1101,52 @@ class GarageDashboardCardEditor extends HTMLElement {
   render() {
     this.shadowRoot.innerHTML = `
       <style>
-        .editor { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
-        label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--primary-text-color); }
-        input { padding: 8px 10px; border-radius: 6px; border: 1px solid var(--divider-color); background: var(--secondary-background-color); color: var(--primary-text-color); font-size: 0.9rem; }
+        * { box-sizing: border-box; }
+        .editor { padding: 12px 16px; display: flex; flex-direction: column; gap: 16px; font-family: var(--primary-font-family, sans-serif); }
+        .section-title {
+          font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.1em; color: var(--secondary-text-color);
+          border-bottom: 1px solid var(--divider-color); padding-bottom: 4px; margin-bottom: 8px;
+        }
+        .fields { display: flex; flex-direction: column; gap: 8px; }
+        label { display: flex; flex-direction: column; gap: 3px; font-size: 0.8rem; color: var(--primary-text-color); }
+        label span { font-size: 0.75rem; color: var(--secondary-text-color); }
+        input {
+          padding: 7px 10px; border-radius: 6px;
+          border: 1px solid var(--divider-color);
+          background: var(--secondary-background-color);
+          color: var(--primary-text-color); font-size: 0.85rem;
+          outline: none;
+        }
+        input:focus { border-color: var(--primary-color); }
       </style>
       <div class="editor">
-        ${this._fields.map(f => `
-          <label>
-            ${f.label}
-            <input type="${f.type}" data-key="${f.key}" value="${this._config[f.key] || ""}" />
-          </label>
+        ${this._sections.map(section => `
+          <div>
+            <div class="section-title">${section.title}</div>
+            <div class="fields">
+              ${section.fields.map(f => `
+                <label>
+                  <span>${f.label}</span>
+                  <input
+                    type="${f.type}"
+                    data-key="${f.key}"
+                    value="${this._config[f.key] !== undefined ? this._config[f.key] : ""}"
+                    placeholder="${f.placeholder || ""}"
+                  />
+                </label>
+              `).join("")}
+            </div>
+          </div>
         `).join("")}
       </div>
     `;
 
     this.shadowRoot.querySelectorAll("input").forEach(input => {
-      input.addEventListener("change", (e) => this._valueChanged(e.target.dataset.key, e.target.value));
+      input.addEventListener("change", (e) => {
+        const val = e.target.type === "number" ? parseFloat(e.target.value) || e.target.value : e.target.value;
+        this._valueChanged(e.target.dataset.key, val);
+      });
     });
   }
 }
