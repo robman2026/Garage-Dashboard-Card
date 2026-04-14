@@ -31,7 +31,6 @@ class GarageDashboardCard extends HTMLElement {
       door_sensor: config.door_sensor || null,
       motion_sensor: config.motion_sensor || null,
       door_ctrl: config.door_ctrl || null,
-      distance_entity: config.distance_entity || null,
       camera_refresh_interval: config.camera_refresh_interval || 5000,
       temp_min: config.temp_min || 0,
       temp_max: config.temp_max || 40,
@@ -190,13 +189,13 @@ class GarageDashboardCard extends HTMLElement {
       wrapper._listenerAttached = true;
       wrapper.addEventListener("click", (e) => {
         // Don't intercept clicks on stream controls (play/pause etc.)
-        if (e.target !== wrapper && e.target.closest("ha-camera-stream")) return;
-        const event = new CustomEvent("hass-more-info", {
+        if (e.target !== wrapper && e.target.closest && e.target.closest("ha-camera-stream")) return;
+        // Fire on the host element (this) so it escapes shadow DOM correctly
+        this.dispatchEvent(new CustomEvent("hass-more-info", {
           bubbles: true,
           composed: true,
           detail: { entityId: this._config.camera_entity },
-        });
-        this.dispatchEvent(event);
+        }));
       });
     }
   }
@@ -250,38 +249,82 @@ class GarageDashboardCard extends HTMLElement {
           <div class="status-dot" id="status-dot"></div>
         </div>
 
-        <!-- Temp & Humidity — compact twin pills -->
+        <!-- Temp & Humidity — thin neon arc, large readable text -->
         <div class="section climate-section">
-          <div class="climate-pill">
-            <svg class="ring-svg" viewBox="0 0 44 44">
-              <circle cx="22" cy="22" r="18" fill="none" stroke="#1e293b" stroke-width="4"/>
-              <circle id="temp-ring" cx="22" cy="22" r="18" fill="none" stroke="#f97316"
-                stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="85"
-                transform="rotate(-90 22 22)"/>
-            </svg>
-            <div class="climate-text">
-              <div class="climate-icon-label">🌡</div>
-              <div class="climate-value" id="temp-val">--.-°C</div>
-              <div class="climate-sub">Temperature</div>
+          <div class="climate-gauge-wrap">
+
+            <div class="climate-gauge" id="temp-gauge-wrap">
+              <svg class="gauge-ring-svg" viewBox="0 0 100 100" overflow="visible">
+                <defs>
+                  <filter id="gf-temp" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+                    <!-- wide soft outer glow -->
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow-wide"/>
+                    <!-- tight inner edge glow -->
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="glow-tight"/>
+                    <feMerge>
+                      <feMergeNode in="glow-wide"/>
+                      <feMergeNode in="glow-tight"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <circle class="g-track" cx="50" cy="50" r="44"/>
+                <circle id="temp-ring" class="g-arc" cx="50" cy="50" r="44"
+                  filter="url(#gf-temp)"
+                  stroke-dasharray="245 30"
+                  stroke-dashoffset="184"
+                  transform="rotate(126 50 50)"/>
+              </svg>
+              <div class="gauge-inner">
+                <svg class="gauge-svg-icon" viewBox="0 0 24 24" width="16" height="16">
+                  <rect x="10" y="3" width="4" height="12" rx="2" fill="#e53e3e"/>
+                  <circle cx="12" cy="17" r="3.5" fill="#e53e3e"/>
+                  <rect x="11" y="5" width="2" height="9" rx="1" fill="#feb2b2" opacity="0.6"/>
+                  <line x1="14" y1="7" x2="16" y2="7" stroke="#e53e3e" stroke-width="1.5" stroke-linecap="round"/>
+                  <line x1="14" y1="10" x2="16" y2="10" stroke="#e53e3e" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <div class="gauge-value" id="temp-val">--.-<sup>°C</sup></div>
+                <div class="gauge-label">TEMPERATURE</div>
+              </div>
             </div>
-          </div>
-          <div class="climate-divider"></div>
-          <div class="climate-pill">
-            <svg class="ring-svg" viewBox="0 0 44 44">
-              <circle cx="22" cy="22" r="18" fill="none" stroke="#1e293b" stroke-width="4"/>
-              <circle id="hum-ring" cx="22" cy="22" r="18" fill="none" stroke="#38bdf8"
-                stroke-width="4" stroke-linecap="round" stroke-dasharray="113" stroke-dashoffset="47"
-                transform="rotate(-90 22 22)"/>
-            </svg>
-            <div class="climate-text">
-              <div class="climate-icon-label">💧</div>
-              <div class="climate-value" id="hum-val">--%</div>
-              <div class="climate-sub">Humidity</div>
+
+            <div class="climate-divider"></div>
+
+            <div class="climate-gauge" id="hum-gauge-wrap">
+              <svg class="gauge-ring-svg" viewBox="0 0 100 100" overflow="visible">
+                <defs>
+                  <filter id="gf-hum" x="-60%" y="-60%" width="220%" height="220%" color-interpolation-filters="sRGB">
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="glow-wide"/>
+                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.2" result="glow-tight"/>
+                    <feMerge>
+                      <feMergeNode in="glow-wide"/>
+                      <feMergeNode in="glow-tight"/>
+                      <feMergeNode in="SourceGraphic"/>
+                    </feMerge>
+                  </filter>
+                </defs>
+                <circle class="g-track" cx="50" cy="50" r="44"/>
+                <circle id="hum-ring" class="g-arc" cx="50" cy="50" r="44"
+                  filter="url(#gf-hum)"
+                  stroke-dasharray="245 30"
+                  stroke-dashoffset="100"
+                  transform="rotate(126 50 50)"/>
+              </svg>
+              <div class="gauge-inner">
+                <svg class="gauge-svg-icon" viewBox="0 0 24 24" width="16" height="16">
+                  <path d="M12 2C12 2 5 10 5 15a7 7 0 0014 0C19 10 12 2 12 2z" fill="#4299e1"/>
+                  <path d="M12 5C12 5 7 11.5 7 15a5 5 0 006 4.9" fill="#90cdf4" opacity="0.35"/>
+                  <ellipse cx="9.5" cy="13" rx="1.2" ry="2" fill="white" opacity="0.4" transform="rotate(-25 9.5 13)"/>
+                </svg>
+                <div class="gauge-value" id="hum-val">--<sup>%</sup></div>
+                <div class="gauge-label">HUMIDITY</div>
+              </div>
             </div>
+
           </div>
         </div>
 
-        <!-- Cover Control -->
+                <!-- Cover Control -->
         <div class="section cover-section" id="cover-section">
           <div class="cover-info">
             <div class="entity-icon cover-icon-wrap">
@@ -393,33 +436,41 @@ class GarageDashboardCard extends HTMLElement {
     if (!this._hass || !this._config) return;
     const root = this.shadowRoot;
 
-    // Temperature & Humidity rings
+    // Temp & humidity glowing gauges
+    // Arc: r=44, 300° sweep, dasharray=249 gap=28, rotate(126°) = starts at 7 o'clock
+    const CIRC = 245;
     const temp = this.getStateValue(this._config.temp_sensor);
-    const hum = this.getStateValue(this._config.humidity_sensor);
+    const hum  = this.getStateValue(this._config.humidity_sensor);
+
     if (root.getElementById("temp-val")) {
-      root.getElementById("temp-val").textContent =
-        temp !== "unavailable" ? `${this.formatTemp(temp)}°C` : "--.-°C";
+      root.getElementById("temp-val").innerHTML =
+        temp !== "unavailable" ? `${this.formatTemp(temp)}<sup>°C</sup>` : `--.-<sup>°C</sup>`;
     }
     if (root.getElementById("hum-val")) {
-      root.getElementById("hum-val").textContent =
-        hum !== "unavailable" ? `${this.formatHum(hum)}%` : "--%";
+      root.getElementById("hum-val").innerHTML =
+        hum !== "unavailable" ? `${this.formatHum(hum)}<sup>%</sup>` : `--<sup>%</sup>`;
     }
-    // Temp ring — segments matching gauge-card-pro config (range 0–50°C)
-    // Stops: 0→#2391FF, 17→#14FF6A, 25→#F8FF42, 35→#FF3502, 50→#FF3502
+
     const tempRing = root.getElementById("temp-ring");
+    const tempWrap = root.getElementById("temp-gauge-wrap");
     if (tempRing && temp !== "unavailable") {
       const t = parseFloat(temp);
       const pct = Math.max(0, Math.min(1, t / 50));
-      tempRing.setAttribute("stroke-dashoffset", (113 * (1 - pct)).toFixed(1));
-      tempRing.setAttribute("stroke", this._tempColor(t));
+      const color = this._tempColor(t);
+      tempRing.setAttribute("stroke-dashoffset", (CIRC * (1 - pct)).toFixed(1));
+      tempRing.setAttribute("stroke", color);
+      if (tempWrap) tempWrap.style.setProperty("--glow-color", color);
     }
-    // Hum ring — normal 20–60%, below=dry(blue), above=humid(red)
+
     const humRing = root.getElementById("hum-ring");
+    const humWrap = root.getElementById("hum-gauge-wrap");
     if (humRing && hum !== "unavailable") {
       const h = parseFloat(hum);
       const pct = Math.max(0, Math.min(1, h / 100));
-      humRing.setAttribute("stroke-dashoffset", (113 * (1 - pct)).toFixed(1));
-      humRing.setAttribute("stroke", this._humColor(h));
+      const color = this._humColor(h);
+      humRing.setAttribute("stroke-dashoffset", (CIRC * (1 - pct)).toFixed(1));
+      humRing.setAttribute("stroke", color);
+      if (humWrap) humWrap.style.setProperty("--glow-color", color);
     }
 
     // Cover
@@ -545,63 +596,108 @@ class GarageDashboardCard extends HTMLElement {
         border-bottom: none;
       }
 
-      /* Climate pills */
+      /* Climate gauges — thin neon arc, large text */
       .climate-section {
         display: flex;
-        align-items: center;
-        gap: 0;
-        padding: 10px 18px;
+        justify-content: center;
+        padding: 14px 18px 12px;
+        background: #07101e;
+        border-bottom: 1px solid #1e293b;
       }
 
-      .climate-pill {
-        flex: 1;
+      .climate-gauge-wrap {
         display: flex;
+        gap: 16px;
+        justify-content: center;
         align-items: center;
-        gap: 12px;
-        padding: 6px 4px;
       }
 
       .climate-divider {
         width: 1px;
-        height: 40px;
-        background: #1e293b;
+        height: 46px;
         flex-shrink: 0;
-        margin: 0 6px;
+        background: linear-gradient(to bottom, transparent, #1e293b 30%, #1e293b 70%, transparent);
       }
 
-      .ring-svg {
-        width: 44px;
-        height: 44px;
+      .climate-gauge {
+        position: relative;
+        width: 88px;
+        height: 88px;
         flex-shrink: 0;
+        border-radius: 50%;
+        background: radial-gradient(circle at 40% 35%, #111a2a 0%, #060d18 65%, #020710 100%);
+        box-shadow:
+          inset 0 0 18px rgba(0,0,0,0.97),
+          inset 0 1px 2px rgba(255,255,255,0.04),
+          0 2px 10px rgba(0,0,0,0.85);
       }
 
-      .climate-text {
+      .gauge-ring-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+      }
+
+      .g-track {
+        fill: none;
+        stroke: #060d18;
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-dasharray: 245 30;
+      }
+
+      .g-arc {
+        fill: none;
+        stroke-width: 5;
+        stroke-linecap: round;
+        stroke-dasharray: 245 30;
+        transition: stroke 0.5s ease, stroke-dashoffset 0.6s ease;
+      }
+
+      .gauge-inner {
+        position: absolute;
+        inset: 0;
         display: flex;
         flex-direction: column;
-        gap: 1px;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        padding: 0 4px;
       }
 
-      .climate-icon-label {
-        font-size: 0.7rem;
-        line-height: 1;
+      .gauge-svg-icon {
+        flex-shrink: 0;
+        margin-bottom: 2px;
       }
 
-      .climate-value {
-        font-size: 1.15rem;
+      .gauge-value {
+        font-size: 1.35rem;
         font-weight: 800;
-        color: #f1f5f9;
-        line-height: 1.2;
-        letter-spacing: -0.01em;
+        color: #ffffff;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        white-space: nowrap;
       }
 
-      .climate-sub {
-        font-size: 0.63rem;
-        color: #64748b;
+      .gauge-value sup {
+        font-size: 0.5rem;
+        font-weight: 600;
+        vertical-align: super;
+        letter-spacing: 0;
+        opacity: 0.8;
+      }
+
+      .gauge-label {
+        font-size: 0.3rem;
+        color: #3d5066;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        letter-spacing: 0.07em;
+        margin-top: 3px;
       }
 
-      /* Cover */
+            /* Cover */
       .cover-section {
         display: flex;
         align-items: center;
@@ -906,7 +1002,6 @@ class GarageDashboardCard extends HTMLElement {
       door_sensor: "binary_sensor.usa_garaj",
       motion_sensor: "binary_sensor.miscare",
       door_ctrl: "cover.usa_garaj_ctrl",
-      distance_entity: "sensor.garaj_distance",
     };
   }
 }
@@ -936,7 +1031,6 @@ class GarageDashboardCardEditor extends HTMLElement {
       { key: "door_sensor", label: "Door Binary Sensor", type: "text" },
       { key: "motion_sensor", label: "Motion Sensor", type: "text" },
       { key: "door_ctrl", label: "Door Control Entity", type: "text" },
-      { key: "distance_entity", label: "Distance Sensor (optional)", type: "text" },
       { key: "camera_refresh_interval", label: "Camera Refresh (ms)", type: "number" },
     ];
   }
