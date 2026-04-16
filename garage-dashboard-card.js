@@ -1164,7 +1164,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v1.0.0 ",
+  "%c GARAGE-DASHBOARD-CARD %c v2.0.0 ",
   "color: white; background: #f97316; font-weight: bold; padding: 2px 4px; border-radius: 3px 0 0 3px;",
   "color: #f97316; background: #1e293b; font-weight: bold; padding: 2px 4px; border-radius: 0 3px 3px 0;"
 );
