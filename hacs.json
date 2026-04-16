@@ -1,11 +1,12 @@
 {
   "name": "Garage Dashboard Card",
-  "description": "A collection of sleek custom Home Assistant Lovelace cards: Garage Dashboard, Vehicle Dashboard, and more.",
-  "content_in_root": true,
+  "description": "A comprehensive all-in-one Lovelace card for garage monitoring: temperature, humidity, cover control, live camera, lights, and sensors in a single sleek dark-themed panel.",
+  "content_in_root": false,
+  "filename": "garage-dashboard-card.js",
   "render_readme": true,
   "homeassistant": "2023.9.0",
   "country": [],
-  "documentation": "https://github.com/robman2026/Garage-Dashboard-Card",
-  "issue_tracker": "https://github.com/robman2026/Garage-Dashboard-Card/issues",
-  "version": "2.0.0"
+  "documentation": "https://github.com/yourusername/garage-dashboard-card",
+  "issue_tracker": "https://github.com/yourusername/garage-dashboard-card/issues",
+  "version": "1.0.0"
 }
