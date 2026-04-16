@@ -45,19 +45,6 @@ A sleek, all-in-one custom Home Assistant Lovelace card for comprehensive garage
 ### Garage Dashboard Card
 Resource URL: `/hacsfiles/Garage-Dashboard-Card/garage-dashboard-card.js`
 
-### Vehicle Dashboard Card
-Resource URL: `/hacsfiles/Garage-Dashboard-Card/vehicle-dashboard-card.js`
-
-## Adding resources (required after install)
-Go to **Settings → Dashboards → Resources** and add each URL above as type `JavaScript module`.
-Or in YAML mode, add to `configuration.yaml`:
-```yaml
-lovelace:
-  resources:
-    - url: /hacsfiles/Garage-Dashboard-Card/garage-dashboard-card.js
-      type: module
-    - url: /hacsfiles/Garage-Dashboard-Card/vehicle-dashboard-card.js
-      type: module
 ```
 ## ⚙️ Configuration
 
