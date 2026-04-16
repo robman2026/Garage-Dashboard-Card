@@ -3,32 +3,116 @@
  * A generic, fully configurable vehicle status card for Home Assistant
  * Repository: https://github.com/robman2026/Garage-Dashboard-Card
  * Style: Samsung Premium (Glassmorphism & Soft Glow) + Modern HA elements
- * Version: 1.0.0
+ * Version: 1.1.0
  */
 
 // ─────────────────────────────────────────────
-//  EDITOR (Visual Config via getConfigForm)
+//  EDITOR — uses HA's native ha-form component
+//  so every entity field gets a searchable
+//  dropdown and text fields get a text input.
 // ─────────────────────────────────────────────
 class VehicleDashboardCardEditor extends HTMLElement {
   constructor() {
     super();
     this._config = {};
+    this._hass   = null;
   }
 
+  // HA calls setConfig when the editor opens
   setConfig(config) {
     this._config = { ...config };
     this._render();
   }
 
+  // HA keeps pushing hass so entity lists stay fresh
   set hass(hass) {
     this._hass = hass;
-    if (!this._rendered) this._render();
+    // Update ha-form's hass property if already rendered
+    const form = this.querySelector("ha-form");
+    if (form) form.hass = hass;
+  }
+
+  // Schema — flat list, every entity field uses
+  // selector.entity so HA renders a searchable dropdown
+  _schema() {
+    return [
+      // ── Appearance ─────────────────────────
+      { name: "title",    selector: { text: {} } },
+      { name: "subtitle", selector: { text: {} } },
+      { name: "car_image",selector: { text: {} } },
+
+      // ── Status Sensors ──────────────────────
+      { name: "odometer_entity",    selector: { entity: {} } },
+      { name: "lock_entity",        selector: { entity: {} } },
+      { name: "location_entity",    selector: { entity: {} } },
+      { name: "range_entity",       selector: { entity: {} } },
+      { name: "last_updated_entity",selector: { entity: {} } },
+      { name: "doors_locked_entity",selector: { entity: {} } },
+
+      // ── Trip Statistics ─────────────────────
+      { name: "daily_distance_entity",  selector: { entity: {} } },
+      { name: "daily_trips_entity",     selector: { entity: {} } },
+      { name: "monthly_distance_entity",selector: { entity: {} } },
+      { name: "monthly_trips_entity",   selector: { entity: {} } },
+
+      // ── Action Buttons ──────────────────────
+      { name: "flash_lights_entity", selector: { entity: {} } },
+      { name: "flash_lights_label",  selector: { text: {} }   },
+      { name: "honk_horn_entity",    selector: { entity: {} } },
+      { name: "honk_horn_label",     selector: { text: {} }   },
+      { name: "update_data_entity",  selector: { entity: {} } },
+      { name: "update_data_label",   selector: { text: {} }   },
+    ];
+  }
+
+  _labels(name) {
+    return {
+      title:                    "Card Title",
+      subtitle:                 "Subtitle (e.g. Car brand / model)",
+      car_image:                "Car Image — URL or /local/ path",
+      odometer_entity:          "Odometer Sensor",
+      lock_entity:              "Lock Status Entity",
+      location_entity:          "Location Sensor",
+      range_entity:             "Range Sensor",
+      last_updated_entity:      "Last Updated Sensor",
+      doors_locked_entity:      "Doors Locked Entity",
+      daily_distance_entity:    "Daily Distance Sensor",
+      daily_trips_entity:       "Daily Trips Sensor",
+      monthly_distance_entity:  "Monthly Distance Sensor",
+      monthly_trips_entity:     "Monthly Trips Sensor",
+      flash_lights_entity:      "Flash Lights — Button Entity",
+      flash_lights_label:       "Flash Lights — Button Label",
+      honk_horn_entity:         "Honk Horn — Button Entity",
+      honk_horn_label:          "Honk Horn — Button Label",
+      update_data_entity:       "Update Data — Button Entity",
+      update_data_label:        "Update Data — Button Label",
+    }[name] || name;
   }
 
   _render() {
-    this._rendered = true;
-    // The editor is handled via getConfigForm on the main card class.
-    // This element is a placeholder — HA uses getConfigForm() directly.
+    // Build ha-form and inject it into this element.
+    // ha-form is a built-in HA web component — always available.
+    this.innerHTML = "";
+
+    const form = document.createElement("ha-form");
+    form.hass        = this._hass;
+    form.data        = this._config;
+    form.schema      = this._schema();
+    form.computeLabel = (s) => this._labels(s.name);
+
+    // Every time the user changes a field, ha-form fires
+    // "value-changed" with the full updated config in detail.value.
+    // We re-dispatch it as "config-changed" so HA saves it.
+    form.addEventListener("value-changed", (e) => {
+      this._config = e.detail.value;
+      this.dispatchEvent(new CustomEvent("config-changed", {
+        detail: { config: this._config },
+        bubbles: true,
+        composed: true,
+      }));
+    });
+
+    this.appendChild(form);
   }
 }
 customElements.define("vehicle-dashboard-card-editor", VehicleDashboardCardEditor);
@@ -71,100 +155,6 @@ class VehicleDashboardCard extends HTMLElement {
       flash_lights_label: "Flash Lights",
       honk_horn_label: "Honk Horn",
       update_data_label: "Update Data",
-    };
-  }
-
-  static getConfigForm() {
-    return {
-      schema: [
-        // ── Appearance ──────────────────────────
-        {
-          type: "expandable",
-          name: "appearance",
-          title: "Appearance",
-          flatten: true,
-          schema: [
-            { name: "title", selector: { text: {} } },
-            { name: "subtitle", selector: { text: {} } },
-            { name: "car_image", selector: { text: {} } },
-          ],
-        },
-        // ── Status Sensors ──────────────────────
-        {
-          type: "expandable",
-          name: "status",
-          title: "Status Sensors",
-          flatten: true,
-          schema: [
-            { name: "odometer_entity", selector: { entity: { domain: "sensor" } } },
-            { name: "lock_entity", selector: { entity: {} } },
-            { name: "location_entity", selector: { entity: {} } },
-            { name: "range_entity", selector: { entity: { domain: "sensor" } } },
-            { name: "last_updated_entity", selector: { entity: {} } },
-            { name: "doors_locked_entity", selector: { entity: {} } },
-          ],
-        },
-        // ── Trip Statistics ─────────────────────
-        {
-          type: "expandable",
-          name: "trips",
-          title: "Trip Statistics",
-          flatten: true,
-          schema: [
-            { name: "daily_distance_entity", selector: { entity: { domain: "sensor" } } },
-            { name: "daily_trips_entity", selector: { entity: { domain: "sensor" } } },
-            { name: "monthly_distance_entity", selector: { entity: { domain: "sensor" } } },
-            { name: "monthly_trips_entity", selector: { entity: { domain: "sensor" } } },
-          ],
-        },
-        // ── Action Buttons ──────────────────────
-        {
-          type: "expandable",
-          name: "actions",
-          title: "Action Buttons",
-          flatten: true,
-          schema: [
-            {
-              type: "grid",
-              name: "",
-              flatten: true,
-              column_min_width: "200px",
-              schema: [
-                { name: "flash_lights_entity", selector: { entity: { domain: "button" } } },
-                { name: "flash_lights_label", selector: { text: {} } },
-                { name: "honk_horn_entity", selector: { entity: { domain: "button" } } },
-                { name: "honk_horn_label", selector: { text: {} } },
-                { name: "update_data_entity", selector: { entity: { domain: "button" } } },
-                { name: "update_data_label", selector: { text: {} } },
-              ],
-            },
-          ],
-        },
-      ],
-      computeLabel: (schema) => {
-        const labels = {
-          title: "Card Title",
-          subtitle: "Subtitle (e.g. Car brand/model)",
-          car_image: "Car Image URL or /local/ path",
-          odometer_entity: "Odometer Sensor",
-          lock_entity: "Lock Status Entity",
-          location_entity: "Location Sensor",
-          range_entity: "Range Sensor",
-          last_updated_entity: "Last Updated Sensor",
-          doors_locked_entity: "Doors Locked Entity",
-          daily_distance_entity: "Daily Distance Sensor",
-          daily_trips_entity: "Daily Trips Sensor",
-          monthly_distance_entity: "Monthly Distance Sensor",
-          monthly_trips_entity: "Monthly Trips Sensor",
-          flash_lights_entity: "Flash Lights Button Entity",
-          flash_lights_label: "Flash Lights Button Label",
-          honk_horn_entity: "Honk Horn Button Entity",
-          honk_horn_label: "Honk Horn Button Label",
-          update_data_entity: "Update Data Button Entity",
-          update_data_label: "Update Data Button Label",
-        };
-        return labels[schema.name] || schema.name;
-      },
     };
   }
 
