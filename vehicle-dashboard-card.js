@@ -3,7 +3,7 @@
  * A generic, fully configurable vehicle status card for Home Assistant
  * Repository: https://github.com/robman2026/Garage-Dashboard-Card
  * Style: Samsung Premium (Glassmorphism & Soft Glow) + Modern HA elements
- * Version: 1.1.0
+ * Version: 1.2.0
  */
 
 // ─────────────────────────────────────────────
