@@ -1,7 +1,0 @@
-{
-  "name": "garage-dashboard-card",
-  "version": "1.2.0",
-  "description": "A collection of sleek custom Home Assistant Lovelace cards",
-  "repository": "https://github.com/robman2026/Garage-Dashboard-Card",
-  "license": "MIT"
-}
