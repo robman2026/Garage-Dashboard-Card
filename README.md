@@ -29,7 +29,7 @@ A sleek, all-in-one custom Home Assistant Lovelace card for comprehensive garage
 
 1. Open HACS in your Home Assistant instance
 2. Go to **Frontend** → click the **⋮** menu → **Custom repositories**
-3. Add `https://github.com/yourusername/garage-dashboard-card` as a **Lovelace** repository
+3. Add `https://github.com/robman2026/garage-dashboard-card` as a **Lovelace** repository
 4. Click **Install** on the "Garage Dashboard Card" card
 5. Refresh your browser
 
