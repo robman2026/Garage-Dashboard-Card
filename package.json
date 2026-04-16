@@ -1,28 +1,7 @@
 {
   "name": "garage-dashboard-card",
   "version": "1.2.0",
-  "description": "A comprehensive Home Assistant Lovelace card for garage monitoring and control.",
-  "main": "garage-dashboard-card.js",
-  "scripts": {
-    "lint": "eslint garage-dashboard-card.js",
-    "format": "prettier --write garage-dashboard-card.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/robman2026/garage-dashboard-card.git"
-  },
-  "keywords": [
-    "home-assistant",
-    "lovelace",
-    "custom-card",
-    "hacs",
-    "garage",
-    "dashboard"
-  ],
-  "author": "Your Name",
-  "license": "MIT",
-  "devDependencies": {
-    "eslint": "^8.0.0",
-    "prettier": "^3.0.0"
-  }
+  "description": "A collection of sleek custom Home Assistant Lovelace cards",
+  "repository": "https://github.com/robman2026/Garage-Dashboard-Card",
+  "license": "MIT"
 }
