@@ -1,6 +1,6 @@
 {
   "name": "garage-dashboard-card",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "A comprehensive Home Assistant Lovelace card for garage monitoring and control.",
   "main": "garage-dashboard-card.js",
   "scripts": {
