@@ -826,7 +826,7 @@ class GarageDashboardCard extends HTMLElement {
       ha-camera-stream {
         width: 100%;
         display: block;
-        max-height: 220px;
+        max-height: 300px;
         object-fit: cover;
         --video-border-radius: 0;
       }
