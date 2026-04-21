@@ -4,7 +4,7 @@
  * GitHub: https://github.com/robman2026/garage-dashboard-card
  * Version: 3.0.1
  *
- * Changelog v3.0.1:
+ * Changelog v3.0.2:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
  *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
@@ -423,12 +423,16 @@ class GarageDashboardCard extends LitElement {
     const monthlyUnit = cfg.car_monthly_distance_entity ? this._attr(cfg.car_monthly_distance_entity, "unit_of_measurement") || "km" : "km";
     const tripsVal    = this._val(cfg.car_monthly_trips_entity, null);
     const doorsState  = this._val(cfg.car_doors_entity, null);
-    // car_doors_locked_when: "on"  → binary_sensor on=locked (lock sensors, default)
-    //                        "off" → binary_sensor off=locked (door-open sensors where on=unlocked)
-    const lockedWhen  = cfg.car_doors_locked_when || "on";
-    const doorsLocked = doorsState !== null && (
-      doorsState === lockedWhen ||
-      doorsState === "locked"
+    // Normalise to lowercase — handles Lock, lock, locked, Locked, on, off, etc.
+    const doorsStateLc = doorsState ? doorsState.toLowerCase() : null;
+    // car_doors_locked_when: "on"   → binary_sensor on=locked (default)
+    //                        "off"  → binary_sensor off=locked (door-open sensor)
+    //                        "lock" → state is lock/locked (car integrations)
+    const lockedWhen  = (cfg.car_doors_locked_when || "on").toLowerCase();
+    const doorsLocked = doorsStateLc !== null && (
+      doorsStateLc === lockedWhen ||
+      doorsStateLc === "locked" ||
+      doorsStateLc === "lock"
     );
     const doorsColor  = doorsLocked ? "#22c55e" : "#ef4444";
     const doorsLabel  = doorsState ? (doorsLocked ? "Locked" : "Unlocked") : "--";
@@ -496,7 +500,7 @@ class GarageDashboardCard extends LitElement {
             ${cfg.car_update_entity ? html`
               <button class="car-action-btn"
                 @click="${() => this._callService("button", "press", cfg.car_update_entity)}">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
                   <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                 </svg>
                 <div class="car-action-lbl">Update Data</div>
@@ -505,7 +509,7 @@ class GarageDashboardCard extends LitElement {
             ${cfg.car_flash_entity ? html`
               <button class="car-action-btn"
                 @click="${() => this._callService("button", "press", cfg.car_flash_entity)}">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
                   <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
                 </svg>
                 <div class="car-action-lbl">Flash Lights</div>
@@ -514,7 +518,7 @@ class GarageDashboardCard extends LitElement {
             ${cfg.car_horn_entity ? html`
               <button class="car-action-btn"
                 @click="${() => this._callService("button", "press", cfg.car_horn_entity)}">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
                   <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
                 </svg>
                 <div class="car-action-lbl">Honk Horn</div>
@@ -1212,7 +1216,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.1 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.2 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
