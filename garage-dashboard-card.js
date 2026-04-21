@@ -2,7 +2,13 @@
  * garage-dashboard-card.js
  * Garage Dashboard Card for Home Assistant
  * GitHub: https://github.com/robman2026/garage-dashboard-card
- * Version: 3.0.0
+ * Version: 3.0.1
+ *
+ * Changelog v3.0.1:
+ *  - Fix: doors locked state now respects car_doors_locked_when config option
+ *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
+ *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
+ *    Configurable via visual editor toggle in Car tab
  *
  * Changelog v3.0.0:
  *  - Converted from vanilla HTMLElement to LitElement (same architecture as room-card)
@@ -115,6 +121,7 @@ class GarageDashboardCard extends LitElement {
       car_monthly_distance_entity: "",
       car_monthly_trips_entity: "",
       car_doors_entity: "",
+      car_doors_locked_when: "on",
       car_update_entity: "",
       car_flash_entity: "",
       car_horn_entity: "",
@@ -133,6 +140,7 @@ class GarageDashboardCard extends LitElement {
       hum_color_stops:  JSON.parse(JSON.stringify(GDC_DEFAULT_HUM_STOPS)),
       show_car: false,
       car_name: "My Car",
+      car_doors_locked_when: "on",
       ...config,
     };
   }
@@ -415,7 +423,13 @@ class GarageDashboardCard extends LitElement {
     const monthlyUnit = cfg.car_monthly_distance_entity ? this._attr(cfg.car_monthly_distance_entity, "unit_of_measurement") || "km" : "km";
     const tripsVal    = this._val(cfg.car_monthly_trips_entity, null);
     const doorsState  = this._val(cfg.car_doors_entity, null);
-    const doorsLocked = doorsState !== null && (doorsState === "locked" || doorsState === "on" || doorsState === "Locked");
+    // car_doors_locked_when: "on"  → binary_sensor on=locked (lock sensors, default)
+    //                        "off" → binary_sensor off=locked (door-open sensors where on=unlocked)
+    const lockedWhen  = cfg.car_doors_locked_when || "on";
+    const doorsLocked = doorsState !== null && (
+      doorsState === lockedWhen ||
+      doorsState === "locked"
+    );
     const doorsColor  = doorsLocked ? "#22c55e" : "#ef4444";
     const doorsLabel  = doorsState ? (doorsLocked ? "Locked" : "Unlocked") : "--";
     const doorsAgo    = cfg.car_doors_entity ? this._agoStr(cfg.car_doors_entity) : "";
@@ -1066,6 +1080,26 @@ class GarageDashboardCardEditor extends LitElement {
           <label class="ed-label">Doors Locked Sensor / Entity</label>
           ${this._entitySearch("car_doors", cfg.car_doors_entity, (v) => this._set("car_doors_entity", v),
             ["binary_sensor", "sensor", "lock"], "— select entity —")}
+          ${cfg.car_doors_entity ? html`
+            <div class="toggle-row" style="margin-top:6px">
+              <span class="ed-label" style="margin:0">
+                ${cfg.car_doors_locked_when === "off"
+                  ? "Locked when: OFF (door-open sensor)"
+                  : "Locked when: ON (lock sensor — default)"}
+              </span>
+              <label class="toggle-wrap">
+                <input type="checkbox"
+                  ?checked="${(cfg.car_doors_locked_when || 'on') === 'off'}"
+                  @change="${(e) => this._set('car_doors_locked_when', e.target.checked ? 'off' : 'on')}" />
+                <span class="toggle-slider"></span>
+              </label>
+            </div>
+            <p class="hint" style="margin-top:4px">
+              Toggle ON if your sensor reports <strong>on = unlocked</strong>
+              (e.g. a door-open binary sensor). Leave OFF for standard lock entities
+              where <strong>on = locked</strong>.
+            </p>
+          ` : ""}
         </div>
         <div class="section">
           <div class="section-title">Action Buttons</div>
@@ -1178,7 +1212,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.0 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.1 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
