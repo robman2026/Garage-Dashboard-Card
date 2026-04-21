@@ -4,7 +4,7 @@
  * GitHub: https://github.com/robman2026/garage-dashboard-card
  * Version: 3.0.1
  *
- * Changelog v3.0.2:
+ * Changelog v3.0.3:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
  *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
@@ -121,7 +121,7 @@ class GarageDashboardCard extends LitElement {
       car_monthly_distance_entity: "",
       car_monthly_trips_entity: "",
       car_doors_entity: "",
-      car_doors_locked_when: "on",
+      car_doors_locked_when: "off",
       car_update_entity: "",
       car_flash_entity: "",
       car_horn_entity: "",
@@ -140,7 +140,7 @@ class GarageDashboardCard extends LitElement {
       hum_color_stops:  JSON.parse(JSON.stringify(GDC_DEFAULT_HUM_STOPS)),
       show_car: false,
       car_name: "My Car",
-      car_doors_locked_when: "on",
+      car_doors_locked_when: "off",
       ...config,
     };
   }
@@ -425,10 +425,10 @@ class GarageDashboardCard extends LitElement {
     const doorsState  = this._val(cfg.car_doors_entity, null);
     // Normalise to lowercase — handles Lock, lock, locked, Locked, on, off, etc.
     const doorsStateLc = doorsState ? doorsState.toLowerCase() : null;
-    // car_doors_locked_when: "on"   → binary_sensor on=locked (default)
-    //                        "off"  → binary_sensor off=locked (door-open sensor)
+    // car_doors_locked_when: "off"  → binary_sensor off=locked (default — most car integrations)
+    //                        "on"   → binary_sensor on=locked (standard lock entities)
     //                        "lock" → state is lock/locked (car integrations)
-    const lockedWhen  = (cfg.car_doors_locked_when || "on").toLowerCase();
+    const lockedWhen  = (cfg.car_doors_locked_when || "off").toLowerCase();
     const doorsLocked = doorsStateLc !== null && (
       doorsStateLc === lockedWhen ||
       doorsStateLc === "locked" ||
@@ -1093,7 +1093,7 @@ class GarageDashboardCardEditor extends LitElement {
               </span>
               <label class="toggle-wrap">
                 <input type="checkbox"
-                  ?checked="${(cfg.car_doors_locked_when || 'on') === 'off'}"
+                  ?checked="${(cfg.car_doors_locked_when || 'off') === 'off'}"
                   @change="${(e) => this._set('car_doors_locked_when', e.target.checked ? 'off' : 'on')}" />
                 <span class="toggle-slider"></span>
               </label>
@@ -1216,7 +1216,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.2 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.3 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
