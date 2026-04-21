@@ -4,7 +4,7 @@
  * GitHub: https://github.com/robman2026/garage-dashboard-card
  * Version: 3.0.1
  *
- * Changelog v3.0.6:
+ * Changelog v3.0.7:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
  *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
@@ -115,6 +115,7 @@ class GarageDashboardCard extends LitElement {
       door_ctrl_name: "Ușa CTRL",
       toggle_columns: 2,
       sensor_columns: 3,
+      car_stat_columns: 4,
       show_car: false,
       car_name: "My Car",
       car_location_entity: "",
@@ -142,6 +143,7 @@ class GarageDashboardCard extends LitElement {
       hum_color_stops:  JSON.parse(JSON.stringify(GDC_DEFAULT_HUM_STOPS)),
       toggle_columns: 2,
       sensor_columns: 3,
+      car_stat_columns: 4,
       show_car: false,
       car_name: "My Car",
       car_doors_locked_when: "off",
@@ -468,7 +470,7 @@ class GarageDashboardCard extends LitElement {
         </div>
 
         <!-- Stats grid -->
-        <div class="car-stats">
+        <div class="car-stats" style="grid-template-columns:repeat(${cfg.car_stat_columns||4},1fr)">
           ${cfg.car_range_entity ? html`
             <div class="car-stat" @click="${() => this._moreInfo(cfg.car_range_entity)}" style="cursor:pointer">
               <div class="car-stat-val">${fmt(rangeVal)} <span class="car-stat-unit">${rangeUnit}</span></div>
@@ -1077,10 +1079,9 @@ class GarageDashboardCardEditor extends LitElement {
     return html`
       <div class="section">
         <div class="section-title">Layout</div>
-        ${this._numSelect("Toggle Columns (Garage Door / Light)", cfg.toggle_columns || 2, [1,2,3,4],
-            (v) => this._set("toggle_columns", v))}
-        ${this._numSelect("Sensor Columns (Chips row)", cfg.sensor_columns || 3, [1,2,3,4],
-            (v) => this._set("sensor_columns", v))}
+        <p class="hint">How many columns to use for the car stat tiles (Range, Odometer, Monthly Distance, Doors).</p>
+        ${this._numSelect("Car Stats Columns", cfg.car_stat_columns || 4, [1,2,3,4],
+            (v) => this._set("car_stat_columns", v))}
       </div>
       <div class="section">
         <div class="section-title">Car Widget</div>
@@ -1241,7 +1242,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.6 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.7 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
