@@ -4,7 +4,7 @@
  * GitHub: https://github.com/robman2026/garage-dashboard-card
  * Version: 3.0.1
  *
- * Changelog v3.0.4:
+ * Changelog v3.0.5:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
  *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
@@ -1025,15 +1025,17 @@ class GarageDashboardCardEditor extends LitElement {
         <div class="toggle-row">
           <span class="ed-label">Toggle Columns (Garage Door / Light)</span>
           <select class="ed-select inline-select"
+            .value="${String(cfg.toggle_columns || 2)}"
             @change="${(e) => this._set('toggle_columns', parseInt(e.target.value))}">
-            ${[1,2,3,4].map(n => `<option value="${n}" ${(cfg.toggle_columns||2)===n?'selected':''}>${n}</option>`).join('')}
+            ${[1,2,3,4].map((n) => html`<option value="${n}" ?selected="${(cfg.toggle_columns||2) === n}">${n}</option>`)}
           </select>
         </div>
         <div class="toggle-row">
           <span class="ed-label">Sensor Columns (Chips row)</span>
           <select class="ed-select inline-select"
+            .value="${String(cfg.sensor_columns || 3)}"
             @change="${(e) => this._set('sensor_columns', parseInt(e.target.value))}">
-            ${[1,2,3,4].map(n => `<option value="${n}" ${(cfg.sensor_columns||3)===n?'selected':''}>${n}</option>`).join('')}
+            ${[1,2,3,4].map((n) => html`<option value="${n}" ?selected="${(cfg.sensor_columns||3) === n}">${n}</option>`)}
           </select>
         </div>
       </div>
@@ -1239,7 +1241,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.4 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.5 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
