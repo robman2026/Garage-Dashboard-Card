@@ -4,7 +4,7 @@
  * GitHub: https://github.com/robman2026/garage-dashboard-card
  * Version: 3.0.1
  *
- * Changelog v3.0.5:
+ * Changelog v3.0.6:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
  *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
@@ -917,6 +917,18 @@ class GarageDashboardCardEditor extends LitElement {
     `;
   }
 
+  _numSelect(lbl, value, options, onChange) {
+    return html`
+      <div class="toggle-row">
+        <span class="ed-label">${lbl}</span>
+        <select class="ed-select inline-select"
+          @change="${(e) => onChange(parseInt(e.target.value))}">
+          ${options.map((o) => html`<option value="${o}" ?selected="${o === (value || options[0])}">${o}</option>`)}
+        </select>
+      </div>
+    `;
+  }
+
   // ── Color stop editor ─────────────────────────────────────────────────────────
 
   _renderColorStops(stopsKey, unit, defaults) {
@@ -1021,25 +1033,6 @@ class GarageDashboardCardEditor extends LitElement {
     const cfg = this._config;
     return html`
       <div class="section">
-        <div class="section-title">Layout</div>
-        <div class="toggle-row">
-          <span class="ed-label">Toggle Columns (Garage Door / Light)</span>
-          <select class="ed-select inline-select"
-            .value="${String(cfg.toggle_columns || 2)}"
-            @change="${(e) => this._set('toggle_columns', parseInt(e.target.value))}">
-            ${[1,2,3,4].map((n) => html`<option value="${n}" ?selected="${(cfg.toggle_columns||2) === n}">${n}</option>`)}
-          </select>
-        </div>
-        <div class="toggle-row">
-          <span class="ed-label">Sensor Columns (Chips row)</span>
-          <select class="ed-select inline-select"
-            .value="${String(cfg.sensor_columns || 3)}"
-            @change="${(e) => this._set('sensor_columns', parseInt(e.target.value))}">
-            ${[1,2,3,4].map((n) => html`<option value="${n}" ?selected="${(cfg.sensor_columns||3) === n}">${n}</option>`)}
-          </select>
-        </div>
-      </div>
-      <div class="section">
         <div class="section-title">Main Cover (with position control)</div>
         <label class="ed-label">Cover Entity</label>
         ${this._entitySearch("cover", cfg.cover_entity, (v) => this._set("cover_entity", v), ["cover"], "— select cover —")}
@@ -1082,6 +1075,13 @@ class GarageDashboardCardEditor extends LitElement {
   _tabCar() {
     const cfg = this._config;
     return html`
+      <div class="section">
+        <div class="section-title">Layout</div>
+        ${this._numSelect("Toggle Columns (Garage Door / Light)", cfg.toggle_columns || 2, [1,2,3,4],
+            (v) => this._set("toggle_columns", v))}
+        ${this._numSelect("Sensor Columns (Chips row)", cfg.sensor_columns || 3, [1,2,3,4],
+            (v) => this._set("sensor_columns", v))}
+      </div>
       <div class="section">
         <div class="section-title">Car Widget</div>
         ${this._toggle("Show Car Section", cfg.show_car, (v) => this._set("show_car", v))}
@@ -1241,7 +1241,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.5 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.6 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
