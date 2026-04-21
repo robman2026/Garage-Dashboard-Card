@@ -4,7 +4,7 @@
  * GitHub: https://github.com/robman2026/garage-dashboard-card
  * Version: 3.0.1
  *
- * Changelog v3.0.3:
+ * Changelog v3.0.4:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
  *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
@@ -113,6 +113,8 @@ class GarageDashboardCard extends LitElement {
       motion_sensor_name: "Mișcare",
       door_ctrl: "cover.usa_garaj_ctrl",
       door_ctrl_name: "Ușa CTRL",
+      toggle_columns: 2,
+      sensor_columns: 3,
       show_car: false,
       car_name: "My Car",
       car_location_entity: "",
@@ -138,6 +140,8 @@ class GarageDashboardCard extends LitElement {
       temp_max: 50,
       temp_color_stops: JSON.parse(JSON.stringify(GDC_DEFAULT_TEMP_STOPS)),
       hum_color_stops:  JSON.parse(JSON.stringify(GDC_DEFAULT_HUM_STOPS)),
+      toggle_columns: 2,
+      sensor_columns: 3,
       show_car: false,
       car_name: "My Car",
       car_doors_locked_when: "off",
@@ -369,13 +373,13 @@ class GarageDashboardCard extends LitElement {
       ? (isOn ? "close_cover" : "open_cover")
       : (isOn ? "turn_off" : "turn_on");
     const svcDomain = domain === "cover" ? "cover" : "homeassistant";
+    // iconPath is a plain SVG path string — build SVG via innerHTML on a wrapper
+    const svgHtml = `<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="${iconPath}"/></svg>`;
 
     return html`
       <div class="toggle-card ${isOn ? "active" : ""}"
            @click="${() => this._callService(svcDomain, svc, entityId)}">
-        <div class="toggle-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor">${iconPath}</svg>
-        </div>
+        <div class="toggle-icon" .innerHTML="${svgHtml}"></div>
         <div class="toggle-label">${label}</div>
         <div class="toggle-state">${isOn ? "ON" : "OFF"}</div>
       </div>
@@ -389,11 +393,12 @@ class GarageDashboardCard extends LitElement {
     const state  = this._val(entityId);
     const ago    = this._agoStr(entityId);
     const isActive = state === "on" || state === "open" || state === "opening" || state === "detected";
+    const svgHtml = `<svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="${iconPath}"/></svg>`;
 
     return html`
       <div class="sensor-chip ${isActive ? "active" : ""}"
            style="cursor:pointer" @click="${() => this._moreInfo(entityId)}">
-        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">${iconPath}</svg>
+        <div class="chip-icon" .innerHTML="${svgHtml}"></div>
         <div class="sensor-chip-name">${label}</div>
         <div class="sensor-chip-time">${ago}</div>
       </div>
@@ -538,11 +543,11 @@ class GarageDashboardCard extends LitElement {
     const coverState = this._val(cfg.cover_entity);
     const isOpen = coverState === "open" || coverState === "opening";
 
-    const coverSimpleIcon = html`<path d="M20 20H4V9H2v13a2 2 0 002 2h16a2 2 0 002-2V9h-2v11zM22 7H2l2-4h16l2 4zM12 2L7 7h10L12 2z"/>`;
-    const lightIcon       = html`<path d="M12 2a7 7 0 017 7c0 2.62-1.44 4.9-3.57 6.14L15 17H9l-.43-1.86A7 7 0 015 9a7 7 0 017-7zm3 18H9v1a1 1 0 001 1h4a1 1 0 001-1v-1z"/>`;
-    const doorIcon        = html`<path d="M20 20H4V9H2v13a2 2 0 002 2h16a2 2 0 002-2V9h-2v11zM22 7H2l2-4h16l2 4zM12 2L7 7h10L12 2z"/>`;
-    const motionIcon      = html`<path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/>`;
-    const ctrlIcon        = html`<path d="M20 20H4V9H2v13a2 2 0 002 2h16a2 2 0 002-2V9h-2v11zM22 7H2l2-4h16l2 4zM12 2L7 7h10L12 2z"/>`;
+    const coverSimpleIcon = "M20 20H4V9H2v13a2 2 0 002 2h16a2 2 0 002-2V9h-2v11zM22 7H2l2-4h16l2 4zM12 2L7 7h10L12 2z";
+    const lightIcon       = "M12 2a7 7 0 017 7c0 2.62-1.44 4.9-3.57 6.14L15 17H9l-.43-1.86A7 7 0 015 9a7 7 0 017-7zm3 18H9v1a1 1 0 001 1h4a1 1 0 001-1v-1z";
+    const doorIcon        = "M20 20H4V9H2v13a2 2 0 002 2h16a2 2 0 002-2V9h-2v11zM22 7H2l2-4h16l2 4zM12 2L7 7h10L12 2z";
+    const motionIcon      = "M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z";
+    const ctrlIcon        = "M20 20H4V9H2v13a2 2 0 002 2h16a2 2 0 002-2V9h-2v11zM22 7H2l2-4h16l2 4zM12 2L7 7h10L12 2z";
 
     return html`
       <ha-card>
@@ -585,7 +590,7 @@ class GarageDashboardCard extends LitElement {
 
           <!-- Toggles -->
           <div class="section">
-            <div class="toggles-row">
+            <div class="toggles-row" style="grid-template-columns:repeat(${cfg.toggle_columns||2},1fr)">
               ${this._renderToggle(cfg.cover_simple, cfg.cover_simple_name || "Garage Door", coverSimpleIcon)}
               ${this._renderToggle(cfg.light_entity, cfg.light_name || "Lumina Garaj", lightIcon)}
             </div>
@@ -593,7 +598,7 @@ class GarageDashboardCard extends LitElement {
 
           <!-- Sensors -->
           <div class="section">
-            <div class="sensors-row">
+            <div class="sensors-row" style="grid-template-columns:repeat(${cfg.sensor_columns||3},1fr)">
               ${this._renderSensorChip(cfg.door_sensor,  cfg.door_sensor_name  || "Ușa garaj",  doorIcon)}
               ${this._renderSensorChip(cfg.motion_sensor,cfg.motion_sensor_name || "Mișcare",    motionIcon)}
               ${this._renderSensorChip(cfg.door_ctrl,    cfg.door_ctrl_name     || "Ușa CTRL",   ctrlIcon)}
@@ -701,7 +706,7 @@ class GarageDashboardCard extends LitElement {
       .camera-unavail { display: flex; align-items: center; justify-content: center; padding: 20px; color: rgba(255,255,255,0.3); font-size: .75rem; }
 
       /* ── Toggles ── */
-      .toggles-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .toggles-row { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
       .toggle-card {
         background: #1e293b; border-radius: 12px; padding: 11px 10px;
         display: flex; flex-direction: column; align-items: center; gap: 5px;
@@ -719,7 +724,7 @@ class GarageDashboardCard extends LitElement {
       .toggle-card.active .toggle-state { color: #f97316; }
 
       /* ── Sensor chips ── */
-      .sensors-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+      .sensors-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
       .sensor-chip {
         background: #1e293b; border-radius: 10px; padding: 8px 6px;
         display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -729,6 +734,7 @@ class GarageDashboardCard extends LitElement {
       .sensor-chip.active { border-color: #f59e0b; background: #1c1a0a; }
       .sensor-chip svg { color: #475569; }
       .sensor-chip.active svg { color: #f59e0b; }
+      .chip-icon { display:flex; align-items:center; justify-content:center; }
       .sensor-chip-name { font-size: .6rem; color: #94a3b8; text-align: center; font-weight: 600; }
       .sensor-chip-time { font-size: .56rem; color: #64748b; text-align: center; }
       .sensor-chip.active .sensor-chip-name { color: #fcd34d; }
@@ -1015,6 +1021,23 @@ class GarageDashboardCardEditor extends LitElement {
     const cfg = this._config;
     return html`
       <div class="section">
+        <div class="section-title">Layout</div>
+        <div class="toggle-row">
+          <span class="ed-label">Toggle Columns (Garage Door / Light)</span>
+          <select class="ed-select inline-select"
+            @change="${(e) => this._set('toggle_columns', parseInt(e.target.value))}">
+            ${[1,2,3,4].map(n => `<option value="${n}" ${(cfg.toggle_columns||2)===n?'selected':''}>${n}</option>`).join('')}
+          </select>
+        </div>
+        <div class="toggle-row">
+          <span class="ed-label">Sensor Columns (Chips row)</span>
+          <select class="ed-select inline-select"
+            @change="${(e) => this._set('sensor_columns', parseInt(e.target.value))}">
+            ${[1,2,3,4].map(n => `<option value="${n}" ${(cfg.sensor_columns||3)===n?'selected':''}>${n}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="section">
         <div class="section-title">Main Cover (with position control)</div>
         <label class="ed-label">Cover Entity</label>
         ${this._entitySearch("cover", cfg.cover_entity, (v) => this._set("cover_entity", v), ["cover"], "— select cover —")}
@@ -1216,7 +1239,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.3 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.4 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
