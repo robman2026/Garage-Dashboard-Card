@@ -10,7 +10,7 @@
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
  *    Configurable via visual editor toggle in Car tab
  *
- * Changelog v3.0.0:
+ * Changelog v3.0.1:
  *  - Converted from vanilla HTMLElement to LitElement (same architecture as room-card)
  *  - Climate section: room-card compact tile style (52×52 SVG arc + value + label)
  *  - Configurable color stops for temperature and humidity (shared with room-card)
@@ -20,6 +20,7 @@
  *    car section toggle with all entity fields
  *  - Uses room-card-stream sub-element for camera (if already registered)
  *    or falls back to ha-camera-stream directly
+ *  - remove Camera label
  */
 
 // ── Inherit LitElement from existing HA element ───────────────────────────────
