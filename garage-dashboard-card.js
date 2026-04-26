@@ -714,7 +714,7 @@ class GarageDashboardCard extends LitElement {
       .toggle-card:hover { background: #263348; }
       .toggle-card:active { transform: scale(0.97); }
       .toggle-card.active { border-color: #f97316; background: #1c130a; }
-      .toggle-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #64748b; }
+      .toggle-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #FEFCFF; }
       .toggle-card.active .toggle-icon { color: #f97316; }
       .toggle-icon svg { width: 18px; height: 18px; }
       .toggle-label { font-size: .65rem; color: #FEFCFF; text-align: center; }
@@ -730,11 +730,11 @@ class GarageDashboardCard extends LitElement {
       }
       .sensor-chip:hover { background: #263348; }
       .sensor-chip.active { border-color: #f59e0b; background: #1c1a0a; }
-      .sensor-chip svg { color: #475569; }
+      .sensor-chip svg { color: #FEFCFF; }
       .sensor-chip.active svg { color: #f59e0b; }
       .chip-icon { display:flex; align-items:center; justify-content:center; }
-      .sensor-chip-name { font-size: .6rem; color: #94a3b8; text-align: center; font-weight: 600; }
-      .sensor-chip-time { font-size: .56rem; color: #64748b; text-align: center; }
+      .sensor-chip-name { font-size: .6rem; color: #FEFCFF; text-align: center; font-weight: 600; }
+      .sensor-chip-time { font-size: .56rem; color: #FEFCFF; text-align: center; }
       .sensor-chip.active .sensor-chip-name { color: #fcd34d; }
 
       /* ── Car section ── */
