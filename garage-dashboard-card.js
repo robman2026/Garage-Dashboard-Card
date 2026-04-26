@@ -684,7 +684,7 @@ class GarageDashboardCard extends LitElement {
       .ctrl-btn svg { width: 15px; height: 15px; }
       .ctrl-btn:hover { background: #263348; color: #e2e8f0; }
       .ctrl-btn:active { transform: scale(0.93); }
-      .ctrl-btn.ctrl-stop { border-color: #7f1d1d; background: #1c0e0e; color: #ef4444; }
+      .ctrl-btn.ctrl-stop { border-color: #7F3D1D4D; background: #1c0e0e; color: #B36262; }
       .ctrl-btn.ctrl-stop:hover { background: #2d1010; }
 
       /* ── Camera ── */
