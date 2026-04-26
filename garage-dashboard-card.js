@@ -338,7 +338,6 @@ class GarageDashboardCard extends LitElement {
             <room-card-stream
               .hass=${this._hass}
               .stateObj=${stateObj}
-              .label=${"Garage"}
               .entityId=${eid}
               @camera-more-info="${(e) => this._moreInfo(e.detail.entityId)}"
             ></room-card-stream>
