@@ -717,8 +717,8 @@ class GarageDashboardCard extends LitElement {
       .toggle-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #64748b; }
       .toggle-card.active .toggle-icon { color: #f97316; }
       .toggle-icon svg { width: 18px; height: 18px; }
-      .toggle-label { font-size: .65rem; color: #94a3b8; text-align: center; }
-      .toggle-state { font-size: .62rem; color: #475569; font-weight: 600; }
+      .toggle-label { font-size: .65rem; color: #FEFCFF; text-align: center; }
+      .toggle-state { font-size: .62rem; color: #FEFCFF; font-weight: 600; }
       .toggle-card.active .toggle-state { color: #f97316; }
 
       /* ── Sensor chips ── */
