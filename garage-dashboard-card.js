@@ -355,10 +355,6 @@ class GarageDashboardCard extends LitElement {
             .hass=${this._hass}
             .stateObj=${stateObj}
           ></garage-cam-stream>
-          <div class="cam-overlay">
-            <span class="cam-label">GARAGE</span>
-            <span class="cam-live">● LIVE</span>
-          </div>
         </div>
       </div>
     `;
@@ -662,11 +658,11 @@ class GarageDashboardCard extends LitElement {
         display: flex; flex-direction: column; align-items: center; pointer-events: none;
       }
       .gauge-val-sm  { font-size: 10px; font-weight: 700; line-height: 1; }
-      .gauge-unit-sm { font-size: 6px; color: rgba(255,255,255,0.5); }
+      .gauge-unit-sm { font-size: 6px; color: rgba(255,255,255,0.8); }
       .sensor-info   { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
       .sensor-value  { font-size: 18px; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sensor-unit   { font-size: 11px; font-weight: 400; }
-      .sensor-label  { font-size: 9px; letter-spacing: 1.4px; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-top: 2px; }
+      .sensor-label  { font-size: 9px; letter-spacing: 1.4px; color: rgba(255,255,255,0.9); text-transform: uppercase; margin-top: 2px; }
 
       /* ── Cover row ── */
       .cover-section { border-top: 1px solid #1e293b; }
