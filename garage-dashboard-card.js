@@ -4,13 +4,13 @@
  * GitHub: https://github.com/robman2026/garage-dashboard-card
  * Version: 3.0.1
  *
- * Changelog v3.0.7:
+ * Changelog v3.0.8:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
  *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
  *    Configurable via visual editor toggle in Car tab
  *
- * Changelog v3.0.1:
+ * Changelog v3.0.0:
  *  - Converted from vanilla HTMLElement to LitElement (same architecture as room-card)
  *  - Climate section: room-card compact tile style (52×52 SVG arc + value + label)
  *  - Configurable color stops for temperature and humidity (shared with room-card)
@@ -20,7 +20,6 @@
  *    car section toggle with all entity fields
  *  - Uses room-card-stream sub-element for camera (if already registered)
  *    or falls back to ha-camera-stream directly
- *  - remove Camera label
  */
 
 // ── Inherit LitElement from existing HA element ───────────────────────────────
@@ -119,6 +118,9 @@ class GarageDashboardCard extends LitElement {
       car_stat_columns: 4,
       show_car: false,
       car_name: "My Car",
+      car_image_entity: "",
+      car_image_position: "right",
+      car_image_height: 175,
       car_location_entity: "",
       car_range_entity: "",
       car_odometer_entity: "",
@@ -147,6 +149,9 @@ class GarageDashboardCard extends LitElement {
       car_stat_columns: 4,
       show_car: false,
       car_name: "My Car",
+      car_image_entity: "",
+      car_image_position: "right",
+      car_image_height: 175,
       car_doors_locked_when: "off",
       ...config,
     };
@@ -339,6 +344,7 @@ class GarageDashboardCard extends LitElement {
             <room-card-stream
               .hass=${this._hass}
               .stateObj=${stateObj}
+              .label=${"Garage"}
               .entityId=${eid}
               @camera-more-info="${(e) => this._moreInfo(e.detail.entityId)}"
             ></room-card-stream>
@@ -355,6 +361,10 @@ class GarageDashboardCard extends LitElement {
             .hass=${this._hass}
             .stateObj=${stateObj}
           ></garage-cam-stream>
+          <div class="cam-overlay">
+            <span class="cam-label">GARAGE</span>
+            <span class="cam-live">● LIVE</span>
+          </div>
         </div>
       </div>
     `;
@@ -426,11 +436,7 @@ class GarageDashboardCard extends LitElement {
     const monthlyUnit = cfg.car_monthly_distance_entity ? this._attr(cfg.car_monthly_distance_entity, "unit_of_measurement") || "km" : "km";
     const tripsVal    = this._val(cfg.car_monthly_trips_entity, null);
     const doorsState  = this._val(cfg.car_doors_entity, null);
-    // Normalise to lowercase — handles Lock, lock, locked, Locked, on, off, etc.
     const doorsStateLc = doorsState ? doorsState.toLowerCase() : null;
-    // car_doors_locked_when: "off"  → binary_sensor off=locked (default — most car integrations)
-    //                        "on"   → binary_sensor on=locked (standard lock entities)
-    //                        "lock" → state is lock/locked (car integrations)
     const lockedWhen  = (cfg.car_doors_locked_when || "off").toLowerCase();
     const doorsLocked = doorsStateLc !== null && (
       doorsStateLc === lockedWhen ||
@@ -441,6 +447,18 @@ class GarageDashboardCard extends LitElement {
     const doorsLabel  = doorsState ? (doorsLocked ? "Locked" : "Unlocked") : "--";
     const doorsAgo    = cfg.car_doors_entity ? this._agoStr(cfg.car_doors_entity) : "";
 
+    // Image
+    const imgEntity   = cfg.car_image_entity;
+    const imgPos      = cfg.car_image_position || "right";
+    const imgHeight   = cfg.car_image_height || 175;
+    const imgStateObj = imgEntity ? this._stateOf(imgEntity) : null;
+    // Build the image URL — works for image.* entities and update.* with entity_picture
+    const imgUrl      = imgStateObj
+      ? (imgStateObj.attributes.entity_picture
+          ? imgStateObj.attributes.entity_picture
+          : (imgStateObj.attributes.image || ""))
+      : "";
+
     // Format number helper
     const fmt = (val) => {
       if (val === null || val === "unavailable") return "--";
@@ -448,8 +466,83 @@ class GarageDashboardCard extends LitElement {
       return isNaN(n) ? val : n.toLocaleString(undefined, { maximumFractionDigits: 0 });
     };
 
+    // ── Stat tiles (shared between both layout modes) ─────────────────────────
+    const _statTiles = () => html`
+      ${cfg.car_range_entity ? html`
+        <div class="car-stat" @click="${() => this._moreInfo(cfg.car_range_entity)}" style="cursor:pointer">
+          <div class="car-stat-val">${fmt(rangeVal)} <span class="car-stat-unit">${rangeUnit}</span></div>
+          <div class="car-stat-lbl">Range (AC On)</div>
+        </div>
+      ` : ""}
+      ${cfg.car_odometer_entity ? html`
+        <div class="car-stat" @click="${() => this._moreInfo(cfg.car_odometer_entity)}" style="cursor:pointer">
+          <div class="car-stat-val">${fmt(odomVal)} <span class="car-stat-unit">${odomUnit}</span></div>
+          <div class="car-stat-lbl">Odometer</div>
+        </div>
+      ` : ""}
+      ${cfg.car_monthly_distance_entity ? html`
+        <div class="car-stat" @click="${() => this._moreInfo(cfg.car_monthly_distance_entity)}" style="cursor:pointer">
+          <div class="car-stat-val">${fmt(monthlyVal)} <span class="car-stat-unit">${monthlyUnit}</span></div>
+          <div class="car-stat-lbl">Monthly distance</div>
+          ${tripsVal && tripsVal !== "unavailable" ? html`
+            <div class="car-stat-sub">${tripsVal} trips this month</div>
+          ` : ""}
+        </div>
+      ` : ""}
+      ${cfg.car_doors_entity ? html`
+        <div class="car-stat" @click="${() => this._moreInfo(cfg.car_doors_entity)}" style="cursor:pointer">
+          <div class="car-stat-val" style="color:${doorsColor}">${doorsLabel}</div>
+          <div class="car-stat-lbl">Doors</div>
+          ${doorsAgo ? html`<div class="car-stat-sub">${doorsAgo}</div>` : ""}
+        </div>
+      ` : ""}
+    `;
+
+    // ── Image element ─────────────────────────────────────────────────────────
+    const _carImage = (cls) => imgUrl ? html`
+      <div class="${cls}" style="${cls === "car-img-banner" ? "height:" + imgHeight + "px" : ""}">
+        <img src="${imgUrl}" alt="${cfg.car_name || "Car"}"
+             @error="${(e) => { e.target.style.display="none"; }}"
+             style="width:100%;height:100%;object-fit:contain;display:block;border-radius:10px"/>
+      </div>
+    ` : "";
+
+    // ── Action buttons ────────────────────────────────────────────────────────
+    const _actions = () => (cfg.car_update_entity || cfg.car_flash_entity || cfg.car_horn_entity) ? html`
+      <div class="car-actions">
+        ${cfg.car_update_entity ? html`
+          <button class="car-action-btn"
+            @click="${() => this._callService("button", "press", cfg.car_update_entity)}">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
+              <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+            </svg>
+            <div class="car-action-lbl">Update Data</div>
+          </button>
+        ` : ""}
+        ${cfg.car_flash_entity ? html`
+          <button class="car-action-btn"
+            @click="${() => this._callService("button", "press", cfg.car_flash_entity)}">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
+              <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
+            </svg>
+            <div class="car-action-lbl">Flash Lights</div>
+          </button>
+        ` : ""}
+        ${cfg.car_horn_entity ? html`
+          <button class="car-action-btn"
+            @click="${() => this._callService("button", "press", cfg.car_horn_entity)}">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+            <div class="car-action-lbl">Honk Horn</div>
+          </button>
+        ` : ""}
+      </div>
+    ` : "";
+
     return html`
       <div class="section car-section">
+
         <!-- Car header -->
         <div class="car-header">
           <div class="car-icon-box">
@@ -465,70 +558,24 @@ class GarageDashboardCard extends LitElement {
           ` : ""}
         </div>
 
-        <!-- Stats grid -->
-        <div class="car-stats" style="grid-template-columns:repeat(${cfg.car_stat_columns||4},1fr)">
-          ${cfg.car_range_entity ? html`
-            <div class="car-stat" @click="${() => this._moreInfo(cfg.car_range_entity)}" style="cursor:pointer">
-              <div class="car-stat-val">${fmt(rangeVal)} <span class="car-stat-unit">${rangeUnit}</span></div>
-              <div class="car-stat-lbl">Range (AC On)</div>
+        <!-- Option B: image right, stats left -->
+        ${imgUrl && imgPos === "right" ? html`
+          <div class="car-layout-side">
+            <div class="car-side-stats">
+              ${_statTiles()}
             </div>
-          ` : ""}
-          ${cfg.car_odometer_entity ? html`
-            <div class="car-stat" @click="${() => this._moreInfo(cfg.car_odometer_entity)}" style="cursor:pointer">
-              <div class="car-stat-val">${fmt(odomVal)} <span class="car-stat-unit">${odomUnit}</span></div>
-              <div class="car-stat-lbl">Odometer</div>
-            </div>
-          ` : ""}
-          ${cfg.car_monthly_distance_entity ? html`
-            <div class="car-stat" @click="${() => this._moreInfo(cfg.car_monthly_distance_entity)}" style="cursor:pointer">
-              <div class="car-stat-val">${fmt(monthlyVal)} <span class="car-stat-unit">${monthlyUnit}</span></div>
-              <div class="car-stat-lbl">Monthly distance</div>
-              ${tripsVal && tripsVal !== "unavailable" ? html`
-                <div class="car-stat-sub">${tripsVal} trips this month</div>
-              ` : ""}
-            </div>
-          ` : ""}
-          ${cfg.car_doors_entity ? html`
-            <div class="car-stat" @click="${() => this._moreInfo(cfg.car_doors_entity)}" style="cursor:pointer">
-              <div class="car-stat-val" style="color:${doorsColor}">${doorsLabel}</div>
-              <div class="car-stat-lbl">Doors</div>
-              ${doorsAgo ? html`<div class="car-stat-sub">${doorsAgo}</div>` : ""}
-            </div>
-          ` : ""}
-        </div>
+            ${_carImage("car-img-side")}
+          </div>
+        ` : html`
+          <!-- Option A: full-width banner image above stats, OR no image -->
+          ${imgUrl && imgPos === "top" ? _carImage("car-img-banner") : ""}
+          <div class="car-stats" style="grid-template-columns:repeat(${cfg.car_stat_columns||4},1fr)">
+            ${_statTiles()}
+          </div>
+        `}
 
         <!-- Action buttons -->
-        ${(cfg.car_update_entity || cfg.car_flash_entity || cfg.car_horn_entity) ? html`
-          <div class="car-actions">
-            ${cfg.car_update_entity ? html`
-              <button class="car-action-btn"
-                @click="${() => this._callService("button", "press", cfg.car_update_entity)}">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
-                  <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
-                </svg>
-                <div class="car-action-lbl">Update Data</div>
-              </button>
-            ` : ""}
-            ${cfg.car_flash_entity ? html`
-              <button class="car-action-btn"
-                @click="${() => this._callService("button", "press", cfg.car_flash_entity)}">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
-                  <path d="M7 2v11h3v9l7-12h-4l4-8z"/>
-                </svg>
-                <div class="car-action-lbl">Flash Lights</div>
-              </button>
-            ` : ""}
-            ${cfg.car_horn_entity ? html`
-              <button class="car-action-btn"
-                @click="${() => this._callService("button", "press", cfg.car_horn_entity)}">
-                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" style="color:#60a5fa;flex-shrink:0">
-                  <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0014 7.97v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
-                </svg>
-                <div class="car-action-lbl">Honk Horn</div>
-              </button>
-            ` : ""}
-          </div>
-        ` : ""}
+        ${_actions()}
       </div>
     `;
   }
@@ -658,11 +705,11 @@ class GarageDashboardCard extends LitElement {
         display: flex; flex-direction: column; align-items: center; pointer-events: none;
       }
       .gauge-val-sm  { font-size: 10px; font-weight: 700; line-height: 1; }
-      .gauge-unit-sm { font-size: 6px; color: rgba(255,255,255,0.8); }
+      .gauge-unit-sm { font-size: 6px; color: rgba(255,255,255,0.5); }
       .sensor-info   { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
       .sensor-value  { font-size: 18px; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sensor-unit   { font-size: 11px; font-weight: 400; }
-      .sensor-label  { font-size: 9px; letter-spacing: 1.4px; color: rgba(255,255,255,0.9); text-transform: uppercase; margin-top: 2px; }
+      .sensor-label  { font-size: 9px; letter-spacing: 1.4px; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-top: 2px; }
 
       /* ── Cover row ── */
       .cover-section { border-top: 1px solid #1e293b; }
@@ -684,7 +731,7 @@ class GarageDashboardCard extends LitElement {
       .ctrl-btn svg { width: 15px; height: 15px; }
       .ctrl-btn:hover { background: #263348; color: #e2e8f0; }
       .ctrl-btn:active { transform: scale(0.93); }
-      .ctrl-btn.ctrl-stop { border-color: #7F3D1D4D; background: #1c0e0e; color: #B36262; }
+      .ctrl-btn.ctrl-stop { border-color: #7f1d1d; background: #1c0e0e; color: #ef4444; }
       .ctrl-btn.ctrl-stop:hover { background: #2d1010; }
 
       /* ── Camera ── */
@@ -714,11 +761,11 @@ class GarageDashboardCard extends LitElement {
       .toggle-card:hover { background: #263348; }
       .toggle-card:active { transform: scale(0.97); }
       .toggle-card.active { border-color: #f97316; background: #1c130a; }
-      .toggle-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #FEFCFF; }
+      .toggle-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #64748b; }
       .toggle-card.active .toggle-icon { color: #f97316; }
       .toggle-icon svg { width: 18px; height: 18px; }
-      .toggle-label { font-size: .65rem; color: #FEFCFF; text-align: center; }
-      .toggle-state { font-size: .62rem; color: #FEFCFF; font-weight: 600; }
+      .toggle-label { font-size: .65rem; color: #94a3b8; text-align: center; }
+      .toggle-state { font-size: .62rem; color: #475569; font-weight: 600; }
       .toggle-card.active .toggle-state { color: #f97316; }
 
       /* ── Sensor chips ── */
@@ -730,16 +777,35 @@ class GarageDashboardCard extends LitElement {
       }
       .sensor-chip:hover { background: #263348; }
       .sensor-chip.active { border-color: #f59e0b; background: #1c1a0a; }
-      .sensor-chip svg { color: #FEFCFF; }
+      .sensor-chip svg { color: #475569; }
       .sensor-chip.active svg { color: #f59e0b; }
       .chip-icon { display:flex; align-items:center; justify-content:center; }
-      .sensor-chip-name { font-size: .6rem; color: #FEFCFF; text-align: center; font-weight: 600; }
-      .sensor-chip-time { font-size: .56rem; color: #FEFCFF; text-align: center; }
+      .sensor-chip-name { font-size: .6rem; color: #94a3b8; text-align: center; font-weight: 600; }
+      .sensor-chip-time { font-size: .56rem; color: #64748b; text-align: center; }
       .sensor-chip.active .sensor-chip-name { color: #fcd34d; }
 
       /* ── Car section ── */
       .car-section { border-top: 1px solid #1e293b; }
       .car-header  { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+
+      /* ── Car image layouts ── */
+      .car-layout-side { display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px; }
+      .car-side-stats  { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
+      .car-img-side    {
+        width: 140px; flex-shrink: 0;
+        background: linear-gradient(160deg, #1a2035 0%, #0d1120 100%);
+        border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+        display: flex; align-items: center; justify-content: center; overflow: hidden;
+      }
+      .car-img-side img { width: 100%; height: 100%; object-fit: contain; }
+      .car-img-banner  {
+        width: 100%;
+        background: linear-gradient(160deg, #1a2035 0%, #0d1120 100%);
+        border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+        overflow: hidden; margin-bottom: 8px;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .car-img-banner img { width: 100%; height: 100%; object-fit: contain; }
       .car-icon-box {
         width: 32px; height: 32px; background: #1e293b; border-radius: 8px;
         display: flex; align-items: center; justify-content: center; color: #60a5fa; flex-shrink: 0;
@@ -1088,6 +1154,37 @@ class GarageDashboardCardEditor extends LitElement {
       </div>
       ${cfg.show_car ? html`
         <div class="section">
+          <div class="section-title">Car Image</div>
+          <p class="hint">
+            Select an image entity from your car integration (e.g. Ultra Vehicle Card,
+            NissanConnect). Leave empty to hide the image panel.
+          </p>
+          <label class="ed-label">Image Entity (image.* / update.*)</label>
+          ${this._entitySearch("car_img", cfg.car_image_entity,
+              (v) => this._set("car_image_entity", v),
+              ["image", "update", "camera"], "— select image entity —")}
+          ${cfg.car_image_entity ? html`
+            <label class="ed-label">Image Position</label>
+            <select class="ed-select"
+              @change="${(e) => this._set("car_image_position", e.target.value)}">
+              ${["right", "top"].map((v) => html`
+                <option value="${v}" ?selected="${(cfg.car_image_position || "right") === v}">
+                  ${v === "right" ? "Right — beside stats (Option B)" : "Top — full width banner (Option A)"}
+                </option>
+              `)}
+            </select>
+            ${(cfg.car_image_position || "right") === "top" ? html`
+              <label class="ed-label">Banner Height (px)</label>
+              <input class="ed-input" type="number"
+                .value="${String(cfg.car_image_height || 175)}"
+                placeholder="175"
+                @input="${(e) => this._set("car_image_height", parseInt(e.target.value) || 175)}" />
+            ` : ""}
+          ` : ""}
+        </div>
+      ` : ""}
+      ${cfg.show_car ? html`
+        <div class="section">
           <div class="section-title">Location & Status</div>
           <label class="ed-label">Location / Device Tracker Entity</label>
           ${this._entitySearch("car_loc", cfg.car_location_entity, (v) => this._set("car_location_entity", v),
@@ -1238,7 +1335,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.7 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.8 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
