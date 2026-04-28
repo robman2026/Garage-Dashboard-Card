@@ -4,7 +4,7 @@
  * GitHub: https://github.com/robman2026/garage-dashboard-card
  * Version: 3.0.1
  *
- * Changelog v3.0.8:
+ * Changelog v3.0.9:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
  *    "on"  → binary_sensor "on" means locked (default for lock-type sensors)
  *    "off" → binary_sensor "off" means locked (for door-open sensors where on=unlocked)
@@ -118,7 +118,9 @@ class GarageDashboardCard extends LitElement {
       car_stat_columns: 4,
       show_car: false,
       car_name: "My Car",
-      car_image_entity: "",
+      car_image_type: "none",
+      car_image_data: "",
+      car_image_url: "",
       car_image_position: "right",
       car_image_height: 175,
       car_location_entity: "",
@@ -149,7 +151,9 @@ class GarageDashboardCard extends LitElement {
       car_stat_columns: 4,
       show_car: false,
       car_name: "My Car",
-      car_image_entity: "",
+      car_image_type: "none",
+      car_image_data: "",
+      car_image_url: "",
       car_image_position: "right",
       car_image_height: 175,
       car_doors_locked_when: "off",
@@ -447,17 +451,17 @@ class GarageDashboardCard extends LitElement {
     const doorsLabel  = doorsState ? (doorsLocked ? "Locked" : "Unlocked") : "--";
     const doorsAgo    = cfg.car_doors_entity ? this._agoStr(cfg.car_doors_entity) : "";
 
-    // Image
-    const imgEntity   = cfg.car_image_entity;
-    const imgPos      = cfg.car_image_position || "right";
-    const imgHeight   = cfg.car_image_height || 175;
-    const imgStateObj = imgEntity ? this._stateOf(imgEntity) : null;
-    // Build the image URL — works for image.* entities and update.* with entity_picture
-    const imgUrl      = imgStateObj
-      ? (imgStateObj.attributes.entity_picture
-          ? imgStateObj.attributes.entity_picture
-          : (imgStateObj.attributes.image || ""))
-      : "";
+    // Image — supports upload (base64) and URL
+    const imgType   = cfg.car_image_type || "none";
+    const imgPos    = cfg.car_image_position || "right";
+    const imgHeight = cfg.car_image_height || 175;
+    // Resolve the actual src to display
+    const imgSrc    = imgType === "upload" && cfg.car_image_data
+                        ? cfg.car_image_data           // base64 data URI
+                        : imgType === "url" && cfg.car_image_url
+                          ? cfg.car_image_url           // remote / local URL
+                          : "";
+    const imgUrl    = imgSrc; // alias kept for _carImage() helper below
 
     // Format number helper
     const fmt = (val) => {
@@ -1155,22 +1159,78 @@ class GarageDashboardCardEditor extends LitElement {
       ${cfg.show_car ? html`
         <div class="section">
           <div class="section-title">Car Image</div>
-          <p class="hint">
-            Select an image entity from your car integration (e.g. Ultra Vehicle Card,
-            NissanConnect). Leave empty to hide the image panel.
-          </p>
-          <label class="ed-label">Image Entity (image.* / update.*)</label>
-          ${this._entitySearch("car_img", cfg.car_image_entity,
-              (v) => this._set("car_image_entity", v),
-              ["image", "update", "camera"], "— select image entity —")}
-          ${cfg.car_image_entity ? html`
+          <p class="hint">Choose how the car image is provided. Uploaded images are stored as
+            base64 in the card config — no extra file management needed.</p>
+
+          <label class="ed-label">Image Type</label>
+          <select class="ed-select"
+            @change="${(e) => this._set("car_image_type", e.target.value)}">
+            ${[
+              { val: "none",   label: "None" },
+              { val: "upload", label: "Upload Image" },
+              { val: "url",    label: "Image URL" },
+            ].map((o) => html`
+              <option value="${o.val}" ?selected="${(cfg.car_image_type || "none") === o.val}">${o.label}</option>
+            `)}
+          </select>
+
+          ${(cfg.car_image_type || "none") === "upload" ? html`
+            ${cfg.car_image_data ? html`
+              <div class="img-preview-box">
+                <div class="img-preview-inner">
+                  <img class="img-preview-img" src="${cfg.car_image_data}" alt="Car image">
+                  <div class="img-preview-actions">
+                    <button class="img-action-btn"
+                      title="Replace image"
+                      @click="${() => this.shadowRoot.querySelector("#carImgFileInput").click()}">↑</button>
+                    <button class="img-action-btn img-action-remove"
+                      title="Remove image"
+                      @click="${() => { this._set("car_image_data", ""); }}">✕</button>
+                  </div>
+                </div>
+                <div class="img-meta-bar">
+                  <span class="img-meta-name">Image uploaded · base64</span>
+                </div>
+              </div>
+            ` : html`
+              <div class="upload-area"
+                @click="${() => this.shadowRoot.querySelector("#carImgFileInput").click()}">
+                <div class="upload-icon">🖼️</div>
+                <div class="upload-text">Click to choose an image</div>
+                <div class="upload-sub">JPG, PNG, WEBP · max 2 MB recommended</div>
+              </div>
+            `}
+            <input type="file" id="carImgFileInput" accept="image/*" style="display:none"
+              @change="${(e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => this._set("car_image_data", ev.target.result);
+                reader.readAsDataURL(file);
+              }}" />
+          ` : ""}
+
+          ${(cfg.car_image_type || "none") === "url" ? html`
+            <label class="ed-label">Image URL</label>
+            <input class="ed-input" type="text"
+              .value="${cfg.car_image_url || ""}"
+              placeholder="https://... or /local/car.png"
+              @input="${(e) => this._set("car_image_url", e.target.value)}" />
+            <p class="hint" style="margin-top:5px">
+              Use a public URL or a path to a file in your HA
+              <code>/www/</code> folder (e.g. <code>/local/car.png</code>).
+            </p>
+          ` : ""}
+
+          ${(cfg.car_image_type || "none") !== "none" ? html`
             <label class="ed-label">Image Position</label>
             <select class="ed-select"
               @change="${(e) => this._set("car_image_position", e.target.value)}">
-              ${["right", "top"].map((v) => html`
-                <option value="${v}" ?selected="${(cfg.car_image_position || "right") === v}">
-                  ${v === "right" ? "Right — beside stats (Option B)" : "Top — full width banner (Option A)"}
-                </option>
+              ${[
+                { val: "right", label: "Right — beside stats (Option B)" },
+                { val: "top",   label: "Top — full width banner (Option A)" },
+              ].map((o) => html`
+                <option value="${o.val}" ?selected="${(cfg.car_image_position || "right") === o.val}">${o.label}</option>
               `)}
             </select>
             ${(cfg.car_image_position || "right") === "top" ? html`
@@ -1309,6 +1369,43 @@ class GarageDashboardCardEditor extends LitElement {
       .color-swatch-input { width: 200%; height: 200%; margin: -25%; border: none; cursor: pointer; padding: 0; }
       .stop-actions { display: flex; gap: 8px; margin-top: 4px; }
 
+      /* ── Car image editor UI ── */
+      .upload-area {
+        border: 1.5px dashed var(--divider-color, #334155); border-radius: 10px;
+        padding: 20px 14px; text-align: center;
+        background: rgba(255,255,255,0.02); cursor: pointer;
+        transition: all 0.2s; margin-top: 8px;
+      }
+      .upload-area:hover { border-color: var(--primary-color, #f97316); background: rgba(249,115,22,0.04); }
+      .upload-icon { font-size: 1.5rem; display: block; margin-bottom: 5px; opacity: 0.45; }
+      .upload-text { font-size: 0.78rem; color: var(--secondary-text-color, #94a3b8); font-weight: 500; }
+      .upload-sub  { font-size: 0.64rem; color: var(--disabled-text-color, #475569); margin-top: 3px; }
+      .img-preview-box {
+        margin-top: 8px; border-radius: 10px; overflow: hidden;
+        background: var(--secondary-background-color, #0f172a);
+        border: 1px solid rgba(249,115,22,0.2);
+      }
+      .img-preview-inner { position: relative; width: 100%; height: 130px;
+        display: flex; align-items: center; justify-content: center; }
+      .img-preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
+      .img-preview-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 5px; }
+      .img-action-btn {
+        width: 26px; height: 26px; border-radius: 6px;
+        background: rgba(0,0,0,0.55); backdrop-filter: blur(4px);
+        border: 1px solid rgba(255,255,255,0.12);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: rgba(255,255,255,0.75); font-size: 0.72rem;
+        transition: all 0.15s; font-family: inherit;
+      }
+      .img-action-btn:hover { background: rgba(99,179,237,0.25); border-color: #60a5fa; color: #fff; }
+      .img-action-remove:hover { background: rgba(239,68,68,0.3); border-color: #ef4444; color: #ef4444; }
+      .img-meta-bar {
+        padding: 5px 10px; background: rgba(0,0,0,0.2);
+        font-size: 0.6rem; color: var(--disabled-text-color, #475569);
+        border-top: 1px solid rgba(255,255,255,0.05);
+      }
+      .img-meta-name { color: var(--secondary-text-color, #64748b); font-weight: 600; }
+
       .btn-add { width: 100%; padding: 8px; font-size: 0.78rem; font-weight: 600; border: 1px dashed var(--primary-color, #f97316); border-radius: 6px; background: transparent; color: var(--primary-color, #f97316); cursor: pointer; }
       .btn-add.sm { width: auto; padding: 6px 10px; font-size: 0.72rem; }
       .btn-remove-sm { padding: 2px 5px; font-size: 0.68rem; border: 1px solid #ef4444; border-radius: 4px; background: transparent; color: #ef4444; cursor: pointer; flex-shrink: 0; }
@@ -1335,7 +1432,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.8 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.0.9 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
