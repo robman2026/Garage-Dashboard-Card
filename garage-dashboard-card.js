@@ -2,7 +2,7 @@
  * garage-dashboard-card.js
  * Garage Dashboard Card for Home Assistant
  * GitHub: https://github.com/robman2026/garage-dashboard-card
- * Version: 3.0.1
+ * Version: 3.1.0
  *
  * Changelog v3.0.9:
  *  - Fix: doors locked state now respects car_doors_locked_when config option
@@ -133,6 +133,9 @@ class GarageDashboardCard extends LitElement {
       car_update_entity: "",
       car_flash_entity: "",
       car_horn_entity: "",
+      frosted_glass: false,
+      frosted_opacity: 0.52,
+      frosted_blur: 22,
     };
   }
 
@@ -157,12 +160,34 @@ class GarageDashboardCard extends LitElement {
       car_image_position: "right",
       car_image_height: 175,
       car_doors_locked_when: "off",
+      frosted_glass: false,
+      frosted_opacity: 0.52,
+      frosted_blur: 22,
       ...config,
     };
   }
 
   set hass(hass) {
     this._hass = hass;
+  }
+
+  updated(changedProps) {
+    if (changedProps.has('_config')) {
+      this._applyFrostedVars();
+    }
+  }
+
+  _applyFrostedVars() {
+    const cfg = this._config;
+    if (cfg && cfg.frosted_glass) {
+      const opacity = Math.min(0.9, Math.max(0.1, parseFloat(cfg.frosted_opacity) || 0.52));
+      const blur    = Math.min(40,  Math.max(4,   parseFloat(cfg.frosted_blur)    || 22));
+      this.style.setProperty('--gdc-fg-bg',  'rgba(8,14,30,' + opacity + ')');
+      this.style.setProperty('--gdc-fg-blur', blur + 'px');
+    } else {
+      this.style.removeProperty('--gdc-fg-bg');
+      this.style.removeProperty('--gdc-fg-blur');
+    }
   }
 
   connectedCallback() {
@@ -600,7 +625,7 @@ class GarageDashboardCard extends LitElement {
 
     return html`
       <ha-card>
-        <div class="card">
+        <div class="${this._config.frosted_glass ? 'card card-frosted' : 'card'}">
 
           <!-- Header -->
           <div class="card-header">
@@ -842,6 +867,71 @@ class GarageDashboardCard extends LitElement {
       .car-action-btn:hover { background: #263348; border-color: #60a5fa; }
       .car-action-btn:active { transform: scale(0.95); }
       .car-action-lbl { font-size: .6rem; color: #94a3b8; text-align: center; }
+
+      /* ── Frosted Glass (activated by .card-frosted) ── */
+      :host {
+        --gdc-fg-bg: rgba(8,14,30,0.52);
+        --gdc-fg-blur: 22px;
+      }
+      .card-frosted {
+        background: var(--gdc-fg-bg) !important;
+        backdrop-filter: blur(var(--gdc-fg-blur)) saturate(180%) !important;
+        -webkit-backdrop-filter: blur(var(--gdc-fg-blur)) saturate(180%) !important;
+        border: 1px solid rgba(255,255,255,0.09) !important;
+        box-shadow: 0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07) !important;
+      }
+      .card-frosted::before { display: none !important; }
+      /* Climate sensor tiles */
+      .card-frosted .sensor-tile {
+        background: rgba(255,255,255,0.05) !important;
+        backdrop-filter: blur(var(--gdc-fg-blur)) !important;
+        -webkit-backdrop-filter: blur(var(--gdc-fg-blur)) !important;
+        border-color: rgba(255,255,255,0.1) !important;
+      }
+      .card-frosted .sensor-tile:hover { background: rgba(255,255,255,0.09) !important; }
+      /* Cover entity icon */
+      .card-frosted .entity-icon {
+        background: rgba(255,255,255,0.06) !important;
+      }
+      /* Cover control buttons */
+      .card-frosted .ctrl-btn {
+        background: rgba(255,255,255,0.05) !important;
+        border-color: rgba(255,255,255,0.12) !important;
+      }
+      .card-frosted .ctrl-btn:hover { background: rgba(255,255,255,0.1) !important; }
+      .card-frosted .ctrl-btn.ctrl-stop { background: rgba(239,68,68,0.08) !important; border-color: rgba(127,29,29,0.5) !important; }
+      /* Toggle cards */
+      .card-frosted .toggle-card {
+        background: rgba(255,255,255,0.05) !important;
+        backdrop-filter: blur(var(--gdc-fg-blur)) !important;
+        -webkit-backdrop-filter: blur(var(--gdc-fg-blur)) !important;
+      }
+      .card-frosted .toggle-card:hover { background: rgba(255,255,255,0.09) !important; }
+      .card-frosted .toggle-card.active { background: rgba(249,115,22,0.1) !important; border-color: #f97316 !important; }
+      /* Sensor chips */
+      .card-frosted .sensor-chip {
+        background: rgba(255,255,255,0.05) !important;
+        backdrop-filter: blur(var(--gdc-fg-blur)) !important;
+        -webkit-backdrop-filter: blur(var(--gdc-fg-blur)) !important;
+      }
+      .card-frosted .sensor-chip:hover { background: rgba(255,255,255,0.09) !important; }
+      .card-frosted .sensor-chip.active { background: rgba(245,158,11,0.08) !important; border-color: #f59e0b !important; }
+      /* Car stat tiles */
+      .card-frosted .car-stat {
+        background: rgba(255,255,255,0.05) !important;
+        backdrop-filter: blur(var(--gdc-fg-blur)) !important;
+        -webkit-backdrop-filter: blur(var(--gdc-fg-blur)) !important;
+        border-color: rgba(255,255,255,0.1) !important;
+      }
+      .card-frosted .car-stat:hover { background: rgba(255,255,255,0.09) !important; }
+      /* Car action buttons */
+      .card-frosted .car-action-btn {
+        background: rgba(255,255,255,0.05) !important;
+        border-color: rgba(255,255,255,0.12) !important;
+      }
+      .card-frosted .car-action-btn:hover { background: rgba(96,165,250,0.1) !important; border-color: #60a5fa !important; }
+      /* Car icon box */
+      .card-frosted .car-icon-box { background: rgba(255,255,255,0.06) !important; }
     `;
   }
 
@@ -1298,13 +1388,56 @@ class GarageDashboardCardEditor extends LitElement {
     `;
   }
 
+  // ── TAB: Appearance ──────────────────────────────────────────────────────────
+
+  _tabAppearance() {
+    const cfg = this._config;
+    return html`
+      <div class="section">
+        <div class="section-title">🎨 Frosted Glass Dark Mode</div>
+        ${this._toggle("Frosted Glass Mode", cfg.frosted_glass, (v) => this._set("frosted_glass", v))}
+        ${cfg.frosted_glass ? html`
+          <p class="hint">
+            The card background and all inner tiles use a translucent blur effect.
+            Works best when a dynamic wallpaper is visible behind Home Assistant.
+          </p>
+          <label class="ed-label">Glass Opacity</label>
+          <div class="range-row">
+            <input class="ed-range" type="range" min="0.1" max="0.9" step="0.01"
+              .value="${String(cfg.frosted_opacity || 0.52)}"
+              style="--rp:${Math.round(((cfg.frosted_opacity || 0.52) - 0.1) / 0.8 * 100)}%"
+              @input="${(e) => {
+                const v = parseFloat(e.target.value);
+                e.target.style.setProperty('--rp', Math.round((v - 0.1) / 0.8 * 100) + '%');
+                this._set('frosted_opacity', v);
+              }}" />
+            <span class="range-val">${(cfg.frosted_opacity || 0.52).toFixed(2)}</span>
+          </div>
+          <label class="ed-label">Blur Strength</label>
+          <div class="range-row">
+            <input class="ed-range" type="range" min="4" max="40" step="1"
+              .value="${String(cfg.frosted_blur || 22)}"
+              style="--rp:${Math.round(((cfg.frosted_blur || 22) - 4) / 36 * 100)}%"
+              @input="${(e) => {
+                const v = parseInt(e.target.value);
+                e.target.style.setProperty('--rp', Math.round((v - 4) / 36 * 100) + '%');
+                this._set('frosted_blur', v);
+              }}" />
+            <span class="range-val">${cfg.frosted_blur || 22}px</span>
+          </div>
+        ` : ""}
+      </div>
+    `;
+  }
+
   render() {
     if (!this._config) return html``;
     const tabs = [
-      { id: "general", label: "General"  },
-      { id: "colors",  label: "Colors"   },
-      { id: "devices", label: "Devices"  },
-      { id: "car",     label: "Car"      },
+      { id: "general",    label: "General"    },
+      { id: "appearance", label: "Appearance" },
+      { id: "colors",     label: "Colors"     },
+      { id: "devices",    label: "Devices"    },
+      { id: "car",        label: "Car"        },
     ];
     return html`
       <div class="editor-root">
@@ -1315,10 +1448,11 @@ class GarageDashboardCardEditor extends LitElement {
           `)}
         </div>
         <div class="tab-content">
-          ${this._activeTab === "general" ? this._tabGeneral() : ""}
-          ${this._activeTab === "colors"  ? this._tabColors()  : ""}
-          ${this._activeTab === "devices" ? this._tabDevices() : ""}
-          ${this._activeTab === "car"     ? this._tabCar()     : ""}
+          ${this._activeTab === "general"    ? this._tabGeneral()    : ""}
+          ${this._activeTab === "appearance" ? this._tabAppearance() : ""}
+          ${this._activeTab === "colors"     ? this._tabColors()     : ""}
+          ${this._activeTab === "devices"    ? this._tabDevices()    : ""}
+          ${this._activeTab === "car"        ? this._tabCar()        : ""}
         </div>
       </div>
     `;
@@ -1411,6 +1545,28 @@ class GarageDashboardCardEditor extends LitElement {
       .btn-remove-sm { padding: 2px 5px; font-size: 0.68rem; border: 1px solid #ef4444; border-radius: 4px; background: transparent; color: #ef4444; cursor: pointer; flex-shrink: 0; }
       .btn-remove-sm:disabled { opacity: 0.3; cursor: not-allowed; }
       .btn-reset { padding: 6px 10px; font-size: 0.72rem; font-weight: 600; border: 1px solid var(--divider-color, #334155); border-radius: 6px; background: transparent; color: var(--secondary-text-color, #94a3b8); cursor: pointer; }
+
+      /* Range slider */
+      .range-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+      .range-val { font-size: 0.72rem; font-weight: 600; color: var(--primary-color, #f97316); font-family: monospace; min-width: 38px; text-align: right; flex-shrink: 0; }
+      .ed-range {
+        -webkit-appearance: none; flex: 1; height: 4px; border-radius: 2px; outline: none; cursor: pointer;
+        background: linear-gradient(
+          to right,
+          var(--primary-color, #f97316) 0%,
+          var(--primary-color, #f97316) var(--rp, 50%),
+          var(--divider-color, #334155) var(--rp, 50%),
+          var(--divider-color, #334155) 100%
+        );
+      }
+      .ed-range::-webkit-slider-thumb {
+        -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
+        background: #fff; box-shadow: 0 0 0 3px rgba(249,115,22,.4); cursor: pointer;
+      }
+      .ed-range::-moz-range-thumb {
+        width: 16px; height: 16px; border-radius: 50%; border: none;
+        background: #fff; box-shadow: 0 0 0 3px rgba(249,115,22,.4); cursor: pointer;
+      }
     `;
   }
 }
@@ -1432,7 +1588,7 @@ window.customCards.push({
 });
 
 console.info(
-  "%c GARAGE-DASHBOARD-CARD %c v3.0.9 ",
+  "%c GARAGE-DASHBOARD-CARD %c v3.1.0 ",
   "color:white;background:#f97316;font-weight:bold;padding:2px 4px;border-radius:3px 0 0 3px;",
   "color:#f97316;background:#0f172a;font-weight:bold;padding:2px 4px;border-radius:0 3px 3px 0;"
 );
