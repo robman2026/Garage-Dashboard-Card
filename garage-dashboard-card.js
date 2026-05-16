@@ -1026,60 +1026,22 @@ class GarageDashboardCardEditor extends LitElement {
     `;
   }
 
-  // ── Native HA entity picker ───────────────────────────────────────────────────
+  // ── Universal ha-selector wrapper ─────────────────────────────────────────────
 
-  _entityPicker(label, value, onChange, includeDomains) {
+  _sel(label, value, selector, onChange, helper) {
+    const normalized =
+      value === undefined || value === null
+        ? "boolean" in selector ? false : "number" in selector ? 0 : ""
+        : value;
     return html`
-      <ha-entity-picker
+      <ha-selector
         .hass="${this.hass}"
-        .value="${value || ""}"
+        .selector="${selector}"
+        .value="${normalized}"
         .label="${label}"
-        .includeDomains="${includeDomains || []}"
-        ?allow-custom-entity="${true}"
+        .helper="${helper || ""}"
         @value-changed="${(e) => onChange(e.detail.value)}"
-      ></ha-entity-picker>
-    `;
-  }
-
-  // ── Shared controls ───────────────────────────────────────────────────────────
-
-  _txt(lbl, value, onChange, placeholder) {
-    return html`
-      <label class="ed-label">${lbl}</label>
-      <input class="ed-input" type="text" .value="${value || ""}" placeholder="${placeholder || ""}"
-        @input="${(e) => onChange(e.target.value)}" />
-    `;
-  }
-
-  _num(lbl, value, onChange, placeholder) {
-    return html`
-      <label class="ed-label">${lbl}</label>
-      <input class="ed-input" type="number" .value="${value !== undefined ? String(value) : ""}" placeholder="${placeholder || ""}"
-        @input="${(e) => onChange(parseFloat(e.target.value) || 0)}" />
-    `;
-  }
-
-  _toggle(lbl, value, onChange) {
-    return html`
-      <div class="toggle-row">
-        <span class="ed-label">${lbl}</span>
-        <label class="toggle-wrap">
-          <input type="checkbox" ?checked="${value}" @change="${(e) => onChange(e.target.checked)}" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    `;
-  }
-
-  _numSelect(lbl, value, options, onChange) {
-    return html`
-      <div class="toggle-row">
-        <span class="ed-label">${lbl}</span>
-        <select class="ed-select inline-select"
-          @change="${(e) => onChange(parseInt(e.target.value))}">
-          ${options.map((o) => html`<option value="${o}" ?selected="${o === (value || options[0])}">${o}</option>`)}
-        </select>
-      </div>
+      ></ha-selector>
     `;
   }
 
@@ -1118,7 +1080,7 @@ class GarageDashboardCardEditor extends LitElement {
       ${stops.map((stop, idx) => html`
         <div class="stop-row">
           <div class="stop-dot" style="background:${stop.color}"></div>
-          <input class="ed-input stop-val-input" type="number"
+          <input class="stop-val-input" type="number"
             .value="${stop.pos}"
             @input="${(e) => _updateStop(idx, "pos", e.target.value)}" />
           <span class="stop-unit-lbl">${unit}</span>
@@ -1146,18 +1108,18 @@ class GarageDashboardCardEditor extends LitElement {
     return html`
       <div class="sub-section">
         <div class="sub-title">Card Identity</div>
-        ${this._txt("Card Title", cfg.title, (v) => this._set("title", v), "e.g. Garaj")}
+        ${this._sel("Card Title", cfg.title, { text: {} }, (v) => this._set("title", v))}
       </div>
       <div class="sub-section">
         <div class="sub-title">Climate Sensors</div>
-        ${this._entityPicker("Temperature Entity", cfg.temp_sensor, (v) => this._set("temp_sensor", v), ["sensor"])}
-        ${this._txt("Temperature Label", cfg.temp_label, (v) => this._set("temp_label", v), "TEMPERATURE")}
+        ${this._sel("Temperature Entity", cfg.temp_sensor, { entity: { domain: "sensor" } }, (v) => this._set("temp_sensor", v))}
+        ${this._sel("Temperature Label", cfg.temp_label, { text: {} }, (v) => this._set("temp_label", v))}
         <div class="two-col">
-          ${this._num("Temp Min (°C)", cfg.temp_min, (v) => this._set("temp_min", v), "0")}
-          ${this._num("Temp Max (°C)", cfg.temp_max, (v) => this._set("temp_max", v), "50")}
+          ${this._sel("Temp Min (°C)", cfg.temp_min ?? 0, { number: { min: -50, max: 100, step: 1 } }, (v) => this._set("temp_min", v))}
+          ${this._sel("Temp Max (°C)", cfg.temp_max ?? 60, { number: { min: -50, max: 200, step: 1 } }, (v) => this._set("temp_max", v))}
         </div>
-        ${this._entityPicker("Humidity Entity", cfg.humidity_sensor, (v) => this._set("humidity_sensor", v), ["sensor"])}
-        ${this._txt("Humidity Label", cfg.hum_label, (v) => this._set("hum_label", v), "HUMIDITY")}
+        ${this._sel("Humidity Entity", cfg.humidity_sensor, { entity: { domain: "sensor" } }, (v) => this._set("humidity_sensor", v))}
+        ${this._sel("Humidity Label", cfg.hum_label, { text: {} }, (v) => this._set("hum_label", v))}
       </div>
     `;
   }
@@ -1167,36 +1129,18 @@ class GarageDashboardCardEditor extends LitElement {
   _sectionAppearance() {
     const cfg = this._config;
     return html`
-      ${this._toggle("Frosted Glass Mode", cfg.frosted_glass, (v) => this._set("frosted_glass", v))}
+      ${this._sel("Frosted Glass Mode", cfg.frosted_glass, { boolean: {} }, (v) => this._set("frosted_glass", v))}
       ${cfg.frosted_glass ? html`
         <p class="hint">
           The card background and all inner tiles use a translucent blur effect.
           Works best when a dynamic wallpaper is visible behind Home Assistant.
         </p>
-        <label class="ed-label">Glass Opacity</label>
-        <div class="range-row">
-          <input class="ed-range" type="range" min="0.1" max="0.9" step="0.01"
-            .value="${String(cfg.frosted_opacity || 0.52)}"
-            style="--rp:${Math.round(((cfg.frosted_opacity || 0.52) - 0.1) / 0.8 * 100)}%"
-            @input="${(e) => {
-              const v = parseFloat(e.target.value);
-              e.target.style.setProperty('--rp', Math.round((v - 0.1) / 0.8 * 100) + '%');
-              this._set('frosted_opacity', v);
-            }}" />
-          <span class="range-val">${(cfg.frosted_opacity || 0.52).toFixed(2)}</span>
-        </div>
-        <label class="ed-label">Blur Strength</label>
-        <div class="range-row">
-          <input class="ed-range" type="range" min="4" max="40" step="1"
-            .value="${String(cfg.frosted_blur || 22)}"
-            style="--rp:${Math.round(((cfg.frosted_blur || 22) - 4) / 36 * 100)}%"
-            @input="${(e) => {
-              const v = parseInt(e.target.value);
-              e.target.style.setProperty('--rp', Math.round((v - 4) / 36 * 100) + '%');
-              this._set('frosted_blur', v);
-            }}" />
-          <span class="range-val">${cfg.frosted_blur || 22}px</span>
-        </div>
+        ${this._sel("Glass Opacity", cfg.frosted_opacity ?? 0.52,
+          { number: { min: 0.1, max: 0.9, step: 0.01, mode: "slider" } },
+          (v) => this._set("frosted_opacity", v))}
+        ${this._sel("Blur Strength (px)", cfg.frosted_blur ?? 22,
+          { number: { min: 4, max: 40, step: 1, mode: "slider" } },
+          (v) => this._set("frosted_blur", v))}
       ` : ""}
     `;
   }
@@ -1225,31 +1169,31 @@ class GarageDashboardCardEditor extends LitElement {
     return html`
       <div class="sub-section">
         <div class="sub-title">Main Cover (with position control)</div>
-        ${this._entityPicker("Cover Entity", cfg.cover_entity, (v) => this._set("cover_entity", v), ["cover"])}
-        ${this._txt("Cover Display Name", cfg.cover_name, (v) => this._set("cover_name", v), "Ușa la Garaj")}
+        ${this._sel("Cover Entity", cfg.cover_entity, { entity: { domain: "cover" } }, (v) => this._set("cover_entity", v))}
+        ${this._sel("Cover Display Name", cfg.cover_name, { text: {} }, (v) => this._set("cover_name", v))}
       </div>
       <div class="sub-section">
         <div class="sub-title">Simple Cover Toggle</div>
-        ${this._entityPicker("Entity", cfg.cover_simple, (v) => this._set("cover_simple", v), ["cover"])}
-        ${this._txt("Display Name", cfg.cover_simple_name, (v) => this._set("cover_simple_name", v), "Garage Door")}
+        ${this._sel("Entity", cfg.cover_simple, { entity: { domain: "cover" } }, (v) => this._set("cover_simple", v))}
+        ${this._sel("Display Name", cfg.cover_simple_name, { text: {} }, (v) => this._set("cover_simple_name", v))}
       </div>
       <div class="sub-section">
         <div class="sub-title">Light</div>
-        ${this._entityPicker("Entity", cfg.light_entity, (v) => this._set("light_entity", v), ["light", "switch"])}
-        ${this._txt("Display Name", cfg.light_name, (v) => this._set("light_name", v), "Lumina Garaj")}
+        ${this._sel("Entity", cfg.light_entity, { entity: {} }, (v) => this._set("light_entity", v))}
+        ${this._sel("Display Name", cfg.light_name, { text: {} }, (v) => this._set("light_name", v))}
       </div>
       <div class="sub-section">
         <div class="sub-title">Camera</div>
-        ${this._entityPicker("Camera Entity", cfg.camera_entity, (v) => this._set("camera_entity", v), ["camera"])}
+        ${this._sel("Camera Entity", cfg.camera_entity, { entity: { domain: "camera" } }, (v) => this._set("camera_entity", v))}
       </div>
       <div class="sub-section">
         <div class="sub-title">Sensor Chips Row</div>
-        ${this._entityPicker("Door Sensor", cfg.door_sensor, (v) => this._set("door_sensor", v), ["binary_sensor", "cover"])}
-        ${this._txt("Door Sensor Name", cfg.door_sensor_name, (v) => this._set("door_sensor_name", v), "Ușa garaj")}
-        ${this._entityPicker("Motion Sensor", cfg.motion_sensor, (v) => this._set("motion_sensor", v), ["binary_sensor"])}
-        ${this._txt("Motion Sensor Name", cfg.motion_sensor_name, (v) => this._set("motion_sensor_name", v), "Mișcare")}
-        ${this._entityPicker("Door Control Entity", cfg.door_ctrl, (v) => this._set("door_ctrl", v), ["cover", "binary_sensor"])}
-        ${this._txt("Door Control Name", cfg.door_ctrl_name, (v) => this._set("door_ctrl_name", v), "Ușa CTRL")}
+        ${this._sel("Door Sensor", cfg.door_sensor, { entity: {} }, (v) => this._set("door_sensor", v))}
+        ${this._sel("Door Sensor Name", cfg.door_sensor_name, { text: {} }, (v) => this._set("door_sensor_name", v))}
+        ${this._sel("Motion Sensor", cfg.motion_sensor, { entity: { domain: "binary_sensor" } }, (v) => this._set("motion_sensor", v))}
+        ${this._sel("Motion Sensor Name", cfg.motion_sensor_name, { text: {} }, (v) => this._set("motion_sensor_name", v))}
+        ${this._sel("Door Control Entity", cfg.door_ctrl, { entity: {} }, (v) => this._set("door_ctrl", v))}
+        ${this._sel("Door Control Name", cfg.door_ctrl_name, { text: {} }, (v) => this._set("door_ctrl_name", v))}
       </div>
     `;
   }
@@ -1261,34 +1205,29 @@ class GarageDashboardCardEditor extends LitElement {
     return html`
       <div class="sub-section">
         <div class="sub-title">Layout</div>
-        <p class="hint">How many columns to use for the car stat tiles (Range, Odometer, Monthly Distance, Doors).</p>
-        ${this._numSelect("Car Stats Columns", cfg.car_stat_columns || 4, [1,2,3,4],
-            (v) => this._set("car_stat_columns", v))}
+        ${this._sel("Car Stats Columns", String(cfg.car_stat_columns || 4),
+          { select: { options: ["1","2","3","4"] } },
+          (v) => this._set("car_stat_columns", parseInt(v)),
+          "Columns for Range, Odometer, Monthly Distance, Doors tiles")}
       </div>
       <div class="sub-section">
         <div class="sub-title">Car Widget</div>
-        ${this._toggle("Show Car Section", cfg.show_car, (v) => this._set("show_car", v))}
+        ${this._sel("Show Car Section", cfg.show_car, { boolean: {} }, (v) => this._set("show_car", v))}
         ${cfg.show_car ? html`
-          ${this._txt("Car Display Name", cfg.car_name, (v) => this._set("car_name", v), "e.g. My Car")}
+          ${this._sel("Car Display Name", cfg.car_name, { text: {} }, (v) => this._set("car_name", v))}
         ` : ""}
       </div>
       ${cfg.show_car ? html`
         <div class="sub-section">
           <div class="sub-title">Car Image</div>
-          <p class="hint">Choose how the car image is provided. Uploaded images are stored as
-            base64 in the card config — no extra file management needed.</p>
-
-          <label class="ed-label">Image Type</label>
-          <select class="ed-select"
-            @change="${(e) => this._set("car_image_type", e.target.value)}">
-            ${[
-              { val: "none",   label: "None" },
-              { val: "upload", label: "Upload Image" },
-              { val: "url",    label: "Image URL" },
-            ].map((o) => html`
-              <option value="${o.val}" ?selected="${(cfg.car_image_type || "none") === o.val}">${o.label}</option>
-            `)}
-          </select>
+          ${this._sel("Image Type", cfg.car_image_type || "none",
+            { select: { options: [
+              { value: "none",   label: "None" },
+              { value: "upload", label: "Upload Image" },
+              { value: "url",    label: "Image URL" },
+            ] } },
+            (v) => this._set("car_image_type", v),
+            "Uploaded images are stored as base64 in the card config")}
 
           ${(cfg.car_image_type || "none") === "upload" ? html`
             ${cfg.car_image_data ? html`
@@ -1296,17 +1235,13 @@ class GarageDashboardCardEditor extends LitElement {
                 <div class="img-preview-inner">
                   <img class="img-preview-img" src="${cfg.car_image_data}" alt="Car image">
                   <div class="img-preview-actions">
-                    <button class="img-action-btn"
-                      title="Replace image"
+                    <button class="img-action-btn" title="Replace image"
                       @click="${() => this.shadowRoot.querySelector("#carImgFileInput").click()}">↑</button>
-                    <button class="img-action-btn img-action-remove"
-                      title="Remove image"
-                      @click="${() => { this._set("car_image_data", ""); }}">✕</button>
+                    <button class="img-action-btn img-action-remove" title="Remove image"
+                      @click="${() => this._set("car_image_data", "")}">✕</button>
                   </div>
                 </div>
-                <div class="img-meta-bar">
-                  <span class="img-meta-name">Image uploaded · base64</span>
-                </div>
+                <div class="img-meta-bar"><span class="img-meta-name">Image uploaded · base64</span></div>
               </div>
             ` : html`
               <div class="upload-area"
@@ -1327,77 +1262,55 @@ class GarageDashboardCardEditor extends LitElement {
           ` : ""}
 
           ${(cfg.car_image_type || "none") === "url" ? html`
-            <label class="ed-label">Image URL</label>
-            <input class="ed-input" type="text"
-              .value="${cfg.car_image_url || ""}"
-              placeholder="https://... or /local/car.png"
-              @input="${(e) => this._set("car_image_url", e.target.value)}" />
-            <p class="hint" style="margin-top:5px">
-              Use a public URL or a path to a file in your HA
-              <code>/www/</code> folder (e.g. <code>/local/car.png</code>).
-            </p>
+            ${this._sel("Image URL", cfg.car_image_url, { text: {} },
+              (v) => this._set("car_image_url", v),
+              "Use a public URL or a path like /local/car.png")}
           ` : ""}
 
           ${(cfg.car_image_type || "none") !== "none" ? html`
-            <label class="ed-label">Image Position</label>
-            <select class="ed-select"
-              @change="${(e) => this._set("car_image_position", e.target.value)}">
-              ${[
-                { val: "right", label: "Right — beside stats (Option B)" },
-                { val: "top",   label: "Top — full width banner (Option A)" },
-              ].map((o) => html`
-                <option value="${o.val}" ?selected="${(cfg.car_image_position || "right") === o.val}">${o.label}</option>
-              `)}
-            </select>
+            ${this._sel("Image Position", cfg.car_image_position || "right",
+              { select: { options: [
+                { value: "right", label: "Right — beside stats (Option B)" },
+                { value: "top",   label: "Top — full width banner (Option A)" },
+              ] } },
+              (v) => this._set("car_image_position", v))}
             ${(cfg.car_image_position || "right") === "top" ? html`
-              <label class="ed-label">Banner Height (px)</label>
-              <input class="ed-input" type="number"
-                .value="${String(cfg.car_image_height || 175)}"
-                placeholder="175"
-                @input="${(e) => this._set("car_image_height", parseInt(e.target.value) || 175)}" />
+              ${this._sel("Banner Height (px)", cfg.car_image_height ?? 175,
+                { number: { min: 50, max: 500, step: 5 } },
+                (v) => this._set("car_image_height", v))}
             ` : ""}
           ` : ""}
         </div>
+
         <div class="sub-section">
           <div class="sub-title">Location & Status</div>
-          ${this._entityPicker("Location / Device Tracker Entity", cfg.car_location_entity,
-            (v) => this._set("car_location_entity", v), ["device_tracker", "sensor", "binary_sensor"])}
+          ${this._sel("Location / Device Tracker Entity", cfg.car_location_entity,
+            { entity: {} }, (v) => this._set("car_location_entity", v))}
         </div>
+
         <div class="sub-section">
           <div class="sub-title">Stats</div>
-          ${this._entityPicker("Range Sensor (km remaining)", cfg.car_range_entity, (v) => this._set("car_range_entity", v), ["sensor"])}
-          ${this._entityPicker("Odometer Sensor (total km)", cfg.car_odometer_entity, (v) => this._set("car_odometer_entity", v), ["sensor"])}
-          ${this._entityPicker("Monthly Distance Sensor", cfg.car_monthly_distance_entity, (v) => this._set("car_monthly_distance_entity", v), ["sensor"])}
-          ${this._entityPicker("Monthly Trips Sensor (optional)", cfg.car_monthly_trips_entity, (v) => this._set("car_monthly_trips_entity", v), ["sensor"])}
-          ${this._entityPicker("Doors Locked Sensor / Entity", cfg.car_doors_entity,
-            (v) => this._set("car_doors_entity", v), ["binary_sensor", "sensor", "lock"])}
+          ${this._sel("Range Sensor (km remaining)", cfg.car_range_entity, { entity: { domain: "sensor" } }, (v) => this._set("car_range_entity", v))}
+          ${this._sel("Odometer Sensor (total km)", cfg.car_odometer_entity, { entity: { domain: "sensor" } }, (v) => this._set("car_odometer_entity", v))}
+          ${this._sel("Monthly Distance Sensor", cfg.car_monthly_distance_entity, { entity: { domain: "sensor" } }, (v) => this._set("car_monthly_distance_entity", v))}
+          ${this._sel("Monthly Trips Sensor", cfg.car_monthly_trips_entity, { entity: { domain: "sensor" } }, (v) => this._set("car_monthly_trips_entity", v))}
+          ${this._sel("Doors Locked Sensor / Entity", cfg.car_doors_entity, { entity: {} }, (v) => this._set("car_doors_entity", v))}
           ${cfg.car_doors_entity ? html`
-            <div class="toggle-row" style="margin-top:6px">
-              <span class="ed-label" style="margin:0">
-                ${cfg.car_doors_locked_when === "off"
-                  ? "Locked when: OFF (door-open sensor)"
-                  : "Locked when: ON (lock sensor — default)"}
-              </span>
-              <label class="toggle-wrap">
-                <input type="checkbox"
-                  ?checked="${(cfg.car_doors_locked_when || 'off') === 'off'}"
-                  @change="${(e) => this._set('car_doors_locked_when', e.target.checked ? 'off' : 'on')}" />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-            <p class="hint" style="margin-top:4px">
-              Toggle ON if your sensor reports <strong>on = unlocked</strong>
-              (e.g. a door-open binary sensor). Leave OFF for standard lock entities
-              where <strong>on = locked</strong>.
-            </p>
+            ${this._sel("Door Lock Logic", cfg.car_doors_locked_when || "on",
+              { select: { options: [
+                { value: "on",  label: "Locked when: ON (lock sensor — default)" },
+                { value: "off", label: "Locked when: OFF (door-open binary sensor)" },
+              ] } },
+              (v) => this._set("car_doors_locked_when", v))}
           ` : ""}
         </div>
+
         <div class="sub-section">
           <div class="sub-title">Action Buttons</div>
           <p class="hint">These should be button.* entities. Pressing them calls button.press.</p>
-          ${this._entityPicker("Update Data Button Entity", cfg.car_update_entity, (v) => this._set("car_update_entity", v), ["button"])}
-          ${this._entityPicker("Flash Lights Button Entity", cfg.car_flash_entity, (v) => this._set("car_flash_entity", v), ["button"])}
-          ${this._entityPicker("Honk Horn Button Entity", cfg.car_horn_entity, (v) => this._set("car_horn_entity", v), ["button"])}
+          ${this._sel("Update Data Button", cfg.car_update_entity, { entity: { domain: "button" } }, (v) => this._set("car_update_entity", v))}
+          ${this._sel("Flash Lights Button", cfg.car_flash_entity, { entity: { domain: "button" } }, (v) => this._set("car_flash_entity", v))}
+          ${this._sel("Honk Horn Button", cfg.car_horn_entity, { entity: { domain: "button" } }, (v) => this._set("car_horn_entity", v))}
         </div>
       ` : ""}
     `;
@@ -1418,7 +1331,7 @@ class GarageDashboardCardEditor extends LitElement {
 
   static get styles() {
     return css`
-      :host { display: block; font-family: var(--paper-font-body1_-_font-family, 'Segoe UI', sans-serif); }
+      :host { display: block; }
       .editor-root { display: flex; flex-direction: column; }
 
       /* ── Accordion ── */
@@ -1427,83 +1340,63 @@ class GarageDashboardCardEditor extends LitElement {
       .accordion-header {
         display: flex; align-items: center; gap: 12px;
         padding: 12px 16px; cursor: pointer;
-        transition: background 0.15s;
-        user-select: none;
+        transition: background 0.15s; user-select: none;
       }
-      .accordion-header:hover { background: rgba(249,115,22,0.06); }
-      .accordion.open > .accordion-header { background: rgba(249,115,22,0.08); }
-      .accordion-icon { color: var(--primary-color, #f97316); --mdc-icon-size: 22px; flex-shrink: 0; }
+      .accordion-header:hover { background: rgba(var(--rgb-primary-color, 249,115,22), 0.06); }
+      .accordion.open > .accordion-header { background: rgba(var(--rgb-primary-color, 249,115,22), 0.08); }
+      .accordion-icon { color: var(--primary-color, #03a9f4); --mdc-icon-size: 22px; flex-shrink: 0; }
       .accordion-label {
         flex: 1; font-size: 0.78rem; font-weight: 600;
         letter-spacing: 0.08em; text-transform: uppercase;
-        color: var(--primary-text-color, #e2e8f0);
+        color: var(--primary-text-color);
       }
-      .accordion-chevron { color: var(--secondary-text-color, #94a3b8); --mdc-icon-size: 20px; flex-shrink: 0; }
+      .accordion-chevron { color: var(--secondary-text-color); --mdc-icon-size: 20px; flex-shrink: 0; }
       .accordion-body {
         padding: 8px 16px 16px;
-        display: flex; flex-direction: column; gap: 4px;
-        background: var(--secondary-background-color, rgba(0,0,0,0.1));
+        display: flex; flex-direction: column;
+        background: var(--secondary-background-color);
       }
 
-      /* ── Sub-sections inside accordion body ── */
-      .sub-section { margin-bottom: 14px; }
+      /* ── Sub-sections ── */
+      .sub-section { margin-bottom: 16px; }
       .sub-section:last-child { margin-bottom: 0; }
       .sub-title {
         font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-        letter-spacing: 0.08em; color: var(--primary-color, #f97316);
-        margin-bottom: 8px; padding-bottom: 4px;
-        border-bottom: 1px solid rgba(249,115,22,0.2);
+        letter-spacing: 0.08em; color: var(--primary-color, #03a9f4);
+        margin-bottom: 4px; padding-bottom: 4px;
+        border-bottom: 1px solid var(--divider-color, rgba(0,0,0,0.12));
       }
-      .hint { font-size: 0.73rem; color: var(--secondary-text-color, #94a3b8); margin: 0 0 8px; line-height: 1.5; }
+      .hint { font-size: 0.73rem; color: var(--secondary-text-color); margin: 4px 0 8px; line-height: 1.5; }
 
-      .ed-label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--secondary-text-color, #64748b); margin-bottom: 3px; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
-      .ed-input { width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--divider-color, #334155); border-radius: 6px; background: var(--secondary-background-color, #0f172a); color: var(--primary-text-color, #e2e8f0); box-sizing: border-box; transition: border-color 0.15s; }
-      .ed-input:focus { outline: none; border-color: var(--primary-color, #f97316); }
+      /* ── ha-selector spacing ── */
+      ha-selector { display: block; margin-bottom: 8px; }
 
-      .ed-select { width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--divider-color, #334155); border-radius: 6px; background: var(--secondary-background-color, #0f172a); color: var(--primary-text-color, #e2e8f0); box-sizing: border-box; cursor: pointer; margin-top: 4px; }
-
-      /* Native HA entity picker */
-      ha-entity-picker { display: block; margin-top: 8px; margin-bottom: 4px; }
-
-      .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; gap: 8px; }
-      .toggle-wrap { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
-      .toggle-wrap input { display: none; }
-      .toggle-slider { position: absolute; inset: 0; background: #334155; border-radius: 11px; cursor: pointer; transition: background 0.2s; }
-      .toggle-slider::before { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; background: white; border-radius: 50%; transition: transform 0.2s; }
-      .toggle-wrap input:checked + .toggle-slider { background: var(--primary-color, #f97316); }
-      .toggle-wrap input:checked + .toggle-slider::before { transform: translateX(18px); }
-
-      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; }
 
       /* ── Color stop editor ── */
-      .gradient-bar { height: 10px; border-radius: 5px; margin-bottom: 10px; border: 1px solid var(--divider-color, #334155); }
+      .gradient-bar { height: 10px; border-radius: 5px; margin: 4px 0 10px; border: 1px solid var(--divider-color); }
       .stop-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
       .stop-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.15); }
-      .stop-val-input { width: 62px !important; flex: none !important; padding: 5px 7px !important; font-size: 0.78rem !important; }
-      .stop-unit-lbl { font-size: 0.72rem; color: var(--secondary-text-color, #64748b); flex-shrink: 0; width: 18px; }
-      .stop-arrow { font-size: 0.75rem; color: var(--secondary-text-color, #64748b); flex-shrink: 0; }
-      .color-swatch-wrap { width: 32px; height: 28px; border-radius: 5px; border: 1px solid var(--divider-color, #334155); overflow: hidden; flex-shrink: 0; }
+      .stop-val-input { width: 62px; flex: none; padding: 5px 7px; font-size: 0.78rem; border: 1px solid var(--divider-color); border-radius: 6px; background: var(--secondary-background-color); color: var(--primary-text-color); }
+      .stop-unit-lbl { font-size: 0.72rem; color: var(--secondary-text-color); flex-shrink: 0; width: 18px; }
+      .stop-arrow { font-size: 0.75rem; color: var(--secondary-text-color); flex-shrink: 0; }
+      .color-swatch-wrap { width: 32px; height: 28px; border-radius: 5px; border: 1px solid var(--divider-color); overflow: hidden; flex-shrink: 0; }
       .color-swatch-input { width: 200%; height: 200%; margin: -25%; border: none; cursor: pointer; padding: 0; }
       .stop-actions { display: flex; gap: 8px; margin-top: 4px; }
 
-      /* ── Car image editor UI ── */
+      /* ── Car image upload ── */
       .upload-area {
-        border: 1.5px dashed var(--divider-color, #334155); border-radius: 10px;
+        border: 1.5px dashed var(--divider-color); border-radius: 10px;
         padding: 20px 14px; text-align: center;
         background: rgba(255,255,255,0.02); cursor: pointer;
-        transition: all 0.2s; margin-top: 8px;
+        transition: all 0.2s; margin: 4px 0 8px;
       }
-      .upload-area:hover { border-color: var(--primary-color, #f97316); background: rgba(249,115,22,0.04); }
+      .upload-area:hover { border-color: var(--primary-color); background: rgba(3,169,244,0.04); }
       .upload-icon { font-size: 1.5rem; display: block; margin-bottom: 5px; opacity: 0.45; }
-      .upload-text { font-size: 0.78rem; color: var(--secondary-text-color, #94a3b8); font-weight: 500; }
-      .upload-sub  { font-size: 0.64rem; color: var(--disabled-text-color, #475569); margin-top: 3px; }
-      .img-preview-box {
-        margin-top: 8px; border-radius: 10px; overflow: hidden;
-        background: var(--secondary-background-color, #0f172a);
-        border: 1px solid rgba(249,115,22,0.2);
-      }
-      .img-preview-inner { position: relative; width: 100%; height: 130px;
-        display: flex; align-items: center; justify-content: center; }
+      .upload-text { font-size: 0.78rem; color: var(--secondary-text-color); font-weight: 500; }
+      .upload-sub  { font-size: 0.64rem; color: var(--disabled-text-color); margin-top: 3px; }
+      .img-preview-box { margin: 4px 0 8px; border-radius: 10px; overflow: hidden; background: var(--secondary-background-color); border: 1px solid var(--divider-color); }
+      .img-preview-inner { position: relative; width: 100%; height: 130px; display: flex; align-items: center; justify-content: center; }
       .img-preview-img { max-width: 100%; max-height: 100%; object-fit: contain; }
       .img-preview-actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 5px; }
       .img-action-btn {
@@ -1516,40 +1409,14 @@ class GarageDashboardCardEditor extends LitElement {
       }
       .img-action-btn:hover { background: rgba(99,179,237,0.25); border-color: #60a5fa; color: #fff; }
       .img-action-remove:hover { background: rgba(239,68,68,0.3); border-color: #ef4444; color: #ef4444; }
-      .img-meta-bar {
-        padding: 5px 10px; background: rgba(0,0,0,0.2);
-        font-size: 0.6rem; color: var(--disabled-text-color, #475569);
-        border-top: 1px solid rgba(255,255,255,0.05);
-      }
-      .img-meta-name { color: var(--secondary-text-color, #64748b); font-weight: 600; }
+      .img-meta-bar { padding: 5px 10px; background: rgba(0,0,0,0.2); font-size: 0.6rem; color: var(--disabled-text-color); border-top: 1px solid rgba(255,255,255,0.05); }
+      .img-meta-name { color: var(--secondary-text-color); font-weight: 600; }
 
-      .btn-add { width: 100%; padding: 8px; font-size: 0.78rem; font-weight: 600; border: 1px dashed var(--primary-color, #f97316); border-radius: 6px; background: transparent; color: var(--primary-color, #f97316); cursor: pointer; }
+      .btn-add { width: 100%; padding: 8px; font-size: 0.78rem; font-weight: 600; border: 1px dashed var(--primary-color); border-radius: 6px; background: transparent; color: var(--primary-color); cursor: pointer; }
       .btn-add.sm { width: auto; padding: 6px 10px; font-size: 0.72rem; }
-      .btn-remove-sm { padding: 2px 5px; font-size: 0.68rem; border: 1px solid #ef4444; border-radius: 4px; background: transparent; color: #ef4444; cursor: pointer; flex-shrink: 0; }
+      .btn-remove-sm { padding: 2px 5px; font-size: 0.68rem; border: 1px solid var(--error-color, #ef4444); border-radius: 4px; background: transparent; color: var(--error-color, #ef4444); cursor: pointer; flex-shrink: 0; }
       .btn-remove-sm:disabled { opacity: 0.3; cursor: not-allowed; }
-      .btn-reset { padding: 6px 10px; font-size: 0.72rem; font-weight: 600; border: 1px solid var(--divider-color, #334155); border-radius: 6px; background: transparent; color: var(--secondary-text-color, #94a3b8); cursor: pointer; }
-
-      /* ── Range slider ── */
-      .range-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-      .range-val { font-size: 0.72rem; font-weight: 600; color: var(--primary-color, #f97316); font-family: monospace; min-width: 38px; text-align: right; flex-shrink: 0; }
-      .ed-range {
-        -webkit-appearance: none; flex: 1; height: 4px; border-radius: 2px; outline: none; cursor: pointer;
-        background: linear-gradient(
-          to right,
-          var(--primary-color, #f97316) 0%,
-          var(--primary-color, #f97316) var(--rp, 50%),
-          var(--divider-color, #334155) var(--rp, 50%),
-          var(--divider-color, #334155) 100%
-        );
-      }
-      .ed-range::-webkit-slider-thumb {
-        -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%;
-        background: #fff; box-shadow: 0 0 0 3px rgba(249,115,22,.4); cursor: pointer;
-      }
-      .ed-range::-moz-range-thumb {
-        width: 16px; height: 16px; border-radius: 50%; border: none;
-        background: #fff; box-shadow: 0 0 0 3px rgba(249,115,22,.4); cursor: pointer;
-      }
+      .btn-reset { padding: 6px 10px; font-size: 0.72rem; font-weight: 600; border: 1px solid var(--divider-color); border-radius: 6px; background: transparent; color: var(--secondary-text-color); cursor: pointer; }
     `;
   }
 }
