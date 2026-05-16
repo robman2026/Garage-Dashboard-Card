@@ -977,22 +977,19 @@ class GarageCamStream extends LitElement {
 class GarageDashboardCardEditor extends LitElement {
   static get properties() {
     return {
-      hass:       {},
-      _config:    { state: true },
-      _activeTab: { state: true },
-      _search:    { state: true },
+      hass:          {},
+      _config:       { state: true },
+      _openSections: { state: true },
     };
   }
 
   constructor() {
     super();
-    this._activeTab = "general";
-    this._search    = {};
+    this._openSections = new Set(["general"]);
   }
 
   setConfig(config) {
     this._config = JSON.parse(JSON.stringify(config));
-    this._search = {};
   }
 
   _fire(config) {
@@ -1006,42 +1003,41 @@ class GarageDashboardCardEditor extends LitElement {
     this._fire(this._config);
   }
 
-  _entities(...domains) {
-    if (!this.hass) return [];
-    return Object.keys(this.hass.states)
-      .filter((id) => !domains.length || domains.some((d) => id.startsWith(d + ".")))
-      .sort();
+  _toggleSection(id) {
+    const next = new Set(this._openSections);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    this._openSections = next;
   }
 
-  // ── Searchable entity dropdown ────────────────────────────────────────────────
+  // ── Accordion section ─────────────────────────────────────────────────────────
 
-  _entitySearch(searchKey, currentValue, onChange, domains, placeholder) {
-    const base     = domains && domains.length ? this._entities(...domains) : this._entities();
-    const query    = (this._search[searchKey] || "").toLowerCase().trim();
-    const filtered = query ? base.filter((e) => e.toLowerCase().includes(query)) : base;
-
-    const label = (eid) => {
-      if (!this.hass) return eid;
-      const fn = this.hass.states[eid]?.attributes?.friendly_name;
-      return fn ? `${fn}  (${eid})` : eid;
-    };
-
+  _accordion(id, icon, label, content) {
+    const open = this._openSections.has(id);
     return html`
-      <div class="search-select-wrap">
-        <input class="ed-input search-input" type="text"
-          placeholder="🔍 Search entities..."
-          .value="${this._search[searchKey] || ""}"
-          @input="${(e) => { this._search = { ...this._search, [searchKey]: e.target.value }; }}" />
-        <select class="ed-select"
-          @change="${(e) => { onChange(e.target.value); this._search = { ...this._search, [searchKey]: "" }; }}">
-          <option value="">${placeholder || "— select entity —"}</option>
-          ${filtered.slice(0, 200).map((eid) => html`
-            <option value="${eid}" ?selected="${eid === currentValue}">${label(eid)}</option>
-          `)}
-          ${filtered.length > 200 ? html`<option disabled>…${filtered.length - 200} more</option>` : ""}
-        </select>
-        ${currentValue ? html`<div class="selected-badge">${currentValue}</div>` : ""}
+      <div class="accordion ${open ? "open" : ""}">
+        <div class="accordion-header" @click="${() => this._toggleSection(id)}">
+          <ha-icon class="accordion-icon" icon="${icon}"></ha-icon>
+          <span class="accordion-label">${label}</span>
+          <ha-icon class="accordion-chevron" icon="${open ? "mdi:chevron-up" : "mdi:chevron-down"}"></ha-icon>
+        </div>
+        ${open ? html`<div class="accordion-body">${content}</div>` : ""}
       </div>
+    `;
+  }
+
+  // ── Native HA entity picker ───────────────────────────────────────────────────
+
+  _entityPicker(label, value, onChange, includeDomains) {
+    return html`
+      <label class="ed-label">${label}</label>
+      <ha-entity-picker
+        .hass="${this.hass}"
+        .value="${value || ""}"
+        .includeDomains="${includeDomains || []}"
+        allow-custom-entity
+        @value-changed="${(e) => onChange(e.detail.value)}"
+      ></ha-entity-picker>
     `;
   }
 
@@ -1143,112 +1139,142 @@ class GarageDashboardCardEditor extends LitElement {
     `;
   }
 
-  // ── TAB: General ─────────────────────────────────────────────────────────────
+  // ── SECTION: General ─────────────────────────────────────────────────────────
 
-  _tabGeneral() {
+  _sectionGeneral() {
     const cfg = this._config;
     return html`
-      <div class="section">
-        <div class="section-title">Card Identity</div>
+      <div class="sub-section">
+        <div class="sub-title">Card Identity</div>
         ${this._txt("Card Title", cfg.title, (v) => this._set("title", v), "e.g. Garaj")}
       </div>
-      <div class="section">
-        <div class="section-title">Climate Sensors</div>
-        <label class="ed-label">Temperature Entity</label>
-        ${this._entitySearch("temp", cfg.temp_sensor, (v) => this._set("temp_sensor", v), ["sensor"], "— select temp sensor —")}
+      <div class="sub-section">
+        <div class="sub-title">Climate Sensors</div>
+        ${this._entityPicker("Temperature Entity", cfg.temp_sensor, (v) => this._set("temp_sensor", v), ["sensor"])}
         ${this._txt("Temperature Label", cfg.temp_label, (v) => this._set("temp_label", v), "TEMPERATURE")}
         <div class="two-col">
           ${this._num("Temp Min (°C)", cfg.temp_min, (v) => this._set("temp_min", v), "0")}
           ${this._num("Temp Max (°C)", cfg.temp_max, (v) => this._set("temp_max", v), "50")}
         </div>
-        <label class="ed-label">Humidity Entity</label>
-        ${this._entitySearch("hum", cfg.humidity_sensor, (v) => this._set("humidity_sensor", v), ["sensor"], "— select humidity sensor —")}
+        ${this._entityPicker("Humidity Entity", cfg.humidity_sensor, (v) => this._set("humidity_sensor", v), ["sensor"])}
         ${this._txt("Humidity Label", cfg.hum_label, (v) => this._set("hum_label", v), "HUMIDITY")}
       </div>
     `;
   }
 
-  // ── TAB: Colors ───────────────────────────────────────────────────────────────
+  // ── SECTION: Appearance ───────────────────────────────────────────────────────
 
-  _tabColors() {
+  _sectionAppearance() {
+    const cfg = this._config;
     return html`
-      <div class="section">
-        <div class="section-title">Temperature Color Stops</div>
+      ${this._toggle("Frosted Glass Mode", cfg.frosted_glass, (v) => this._set("frosted_glass", v))}
+      ${cfg.frosted_glass ? html`
+        <p class="hint">
+          The card background and all inner tiles use a translucent blur effect.
+          Works best when a dynamic wallpaper is visible behind Home Assistant.
+        </p>
+        <label class="ed-label">Glass Opacity</label>
+        <div class="range-row">
+          <input class="ed-range" type="range" min="0.1" max="0.9" step="0.01"
+            .value="${String(cfg.frosted_opacity || 0.52)}"
+            style="--rp:${Math.round(((cfg.frosted_opacity || 0.52) - 0.1) / 0.8 * 100)}%"
+            @input="${(e) => {
+              const v = parseFloat(e.target.value);
+              e.target.style.setProperty('--rp', Math.round((v - 0.1) / 0.8 * 100) + '%');
+              this._set('frosted_opacity', v);
+            }}" />
+          <span class="range-val">${(cfg.frosted_opacity || 0.52).toFixed(2)}</span>
+        </div>
+        <label class="ed-label">Blur Strength</label>
+        <div class="range-row">
+          <input class="ed-range" type="range" min="4" max="40" step="1"
+            .value="${String(cfg.frosted_blur || 22)}"
+            style="--rp:${Math.round(((cfg.frosted_blur || 22) - 4) / 36 * 100)}%"
+            @input="${(e) => {
+              const v = parseInt(e.target.value);
+              e.target.style.setProperty('--rp', Math.round((v - 4) / 36 * 100) + '%');
+              this._set('frosted_blur', v);
+            }}" />
+          <span class="range-val">${cfg.frosted_blur || 22}px</span>
+        </div>
+      ` : ""}
+    `;
+  }
+
+  // ── SECTION: Colors ───────────────────────────────────────────────────────────
+
+  _sectionColors() {
+    return html`
+      <div class="sub-section">
+        <div class="sub-title">Temperature Color Stops</div>
         <p class="hint">Enter °C value and pick a color. Arc and value text interpolate smoothly between stops. Min 2 stops.</p>
         ${this._renderColorStops("temp_color_stops", "°C", GDC_DEFAULT_TEMP_STOPS)}
       </div>
-      <div class="section">
-        <div class="section-title">Humidity Color Stops</div>
+      <div class="sub-section">
+        <div class="sub-title">Humidity Color Stops</div>
         <p class="hint">Enter % value and pick a color. Default: orange (dry) → green (40–60%) → red (humid).</p>
         ${this._renderColorStops("hum_color_stops", "%", GDC_DEFAULT_HUM_STOPS)}
       </div>
     `;
   }
 
-  // ── TAB: Cover & Sensors ──────────────────────────────────────────────────────
+  // ── SECTION: Devices ─────────────────────────────────────────────────────────
 
-  _tabDevices() {
+  _sectionDevices() {
     const cfg = this._config;
     return html`
-      <div class="section">
-        <div class="section-title">Main Cover (with position control)</div>
-        <label class="ed-label">Cover Entity</label>
-        ${this._entitySearch("cover", cfg.cover_entity, (v) => this._set("cover_entity", v), ["cover"], "— select cover —")}
+      <div class="sub-section">
+        <div class="sub-title">Main Cover (with position control)</div>
+        ${this._entityPicker("Cover Entity", cfg.cover_entity, (v) => this._set("cover_entity", v), ["cover"])}
         ${this._txt("Cover Display Name", cfg.cover_name, (v) => this._set("cover_name", v), "Ușa la Garaj")}
       </div>
-      <div class="section">
-        <div class="section-title">Simple Cover Toggle</div>
-        <label class="ed-label">Entity</label>
-        ${this._entitySearch("cover_simple", cfg.cover_simple, (v) => this._set("cover_simple", v), ["cover"], "— select cover —")}
+      <div class="sub-section">
+        <div class="sub-title">Simple Cover Toggle</div>
+        ${this._entityPicker("Entity", cfg.cover_simple, (v) => this._set("cover_simple", v), ["cover"])}
         ${this._txt("Display Name", cfg.cover_simple_name, (v) => this._set("cover_simple_name", v), "Garage Door")}
       </div>
-      <div class="section">
-        <div class="section-title">Light</div>
-        <label class="ed-label">Entity</label>
-        ${this._entitySearch("light", cfg.light_entity, (v) => this._set("light_entity", v), ["light", "switch"], "— select light —")}
+      <div class="sub-section">
+        <div class="sub-title">Light</div>
+        ${this._entityPicker("Entity", cfg.light_entity, (v) => this._set("light_entity", v), ["light", "switch"])}
         ${this._txt("Display Name", cfg.light_name, (v) => this._set("light_name", v), "Lumina Garaj")}
       </div>
-      <div class="section">
-        <div class="section-title">Camera</div>
-        <label class="ed-label">Camera Entity</label>
-        ${this._entitySearch("camera", cfg.camera_entity, (v) => this._set("camera_entity", v), ["camera"], "— select camera —")}
+      <div class="sub-section">
+        <div class="sub-title">Camera</div>
+        ${this._entityPicker("Camera Entity", cfg.camera_entity, (v) => this._set("camera_entity", v), ["camera"])}
       </div>
-      <div class="section">
-        <div class="section-title">Sensor Chips Row</div>
-        <label class="ed-label">Door Sensor</label>
-        ${this._entitySearch("door_sensor", cfg.door_sensor, (v) => this._set("door_sensor", v), ["binary_sensor", "cover"], "— select sensor —")}
+      <div class="sub-section">
+        <div class="sub-title">Sensor Chips Row</div>
+        ${this._entityPicker("Door Sensor", cfg.door_sensor, (v) => this._set("door_sensor", v), ["binary_sensor", "cover"])}
         ${this._txt("Door Sensor Name", cfg.door_sensor_name, (v) => this._set("door_sensor_name", v), "Ușa garaj")}
-        <label class="ed-label">Motion Sensor</label>
-        ${this._entitySearch("motion_sensor", cfg.motion_sensor, (v) => this._set("motion_sensor", v), ["binary_sensor"], "— select sensor —")}
+        ${this._entityPicker("Motion Sensor", cfg.motion_sensor, (v) => this._set("motion_sensor", v), ["binary_sensor"])}
         ${this._txt("Motion Sensor Name", cfg.motion_sensor_name, (v) => this._set("motion_sensor_name", v), "Mișcare")}
-        <label class="ed-label">Door Control Entity</label>
-        ${this._entitySearch("door_ctrl", cfg.door_ctrl, (v) => this._set("door_ctrl", v), ["cover", "binary_sensor"], "— select entity —")}
+        ${this._entityPicker("Door Control Entity", cfg.door_ctrl, (v) => this._set("door_ctrl", v), ["cover", "binary_sensor"])}
         ${this._txt("Door Control Name", cfg.door_ctrl_name, (v) => this._set("door_ctrl_name", v), "Ușa CTRL")}
       </div>
     `;
   }
 
-  // ── TAB: Car ─────────────────────────────────────────────────────────────────
+  // ── SECTION: Car ─────────────────────────────────────────────────────────────
 
-  _tabCar() {
+  _sectionCar() {
     const cfg = this._config;
     return html`
-      <div class="section">
-        <div class="section-title">Layout</div>
+      <div class="sub-section">
+        <div class="sub-title">Layout</div>
         <p class="hint">How many columns to use for the car stat tiles (Range, Odometer, Monthly Distance, Doors).</p>
         ${this._numSelect("Car Stats Columns", cfg.car_stat_columns || 4, [1,2,3,4],
             (v) => this._set("car_stat_columns", v))}
       </div>
-      <div class="section">
-        <div class="section-title">Car Widget</div>
+      <div class="sub-section">
+        <div class="sub-title">Car Widget</div>
         ${this._toggle("Show Car Section", cfg.show_car, (v) => this._set("show_car", v))}
         ${cfg.show_car ? html`
           ${this._txt("Car Display Name", cfg.car_name, (v) => this._set("car_name", v), "e.g. My Car")}
         ` : ""}
       </div>
       ${cfg.show_car ? html`
-        <div class="section">
-          <div class="section-title">Car Image</div>
+        <div class="sub-section">
+          <div class="sub-title">Car Image</div>
           <p class="hint">Choose how the car image is provided. Uploaded images are stored as
             base64 in the card config — no extra file management needed.</p>
 
@@ -1332,27 +1358,19 @@ class GarageDashboardCardEditor extends LitElement {
             ` : ""}
           ` : ""}
         </div>
-      ` : ""}
-      ${cfg.show_car ? html`
-        <div class="section">
-          <div class="section-title">Location & Status</div>
-          <label class="ed-label">Location / Device Tracker Entity</label>
-          ${this._entitySearch("car_loc", cfg.car_location_entity, (v) => this._set("car_location_entity", v),
-            ["device_tracker", "sensor", "binary_sensor"], "— select entity —")}
+        <div class="sub-section">
+          <div class="sub-title">Location & Status</div>
+          ${this._entityPicker("Location / Device Tracker Entity", cfg.car_location_entity,
+            (v) => this._set("car_location_entity", v), ["device_tracker", "sensor", "binary_sensor"])}
         </div>
-        <div class="section">
-          <div class="section-title">Stats</div>
-          <label class="ed-label">Range Sensor (km remaining)</label>
-          ${this._entitySearch("car_range", cfg.car_range_entity, (v) => this._set("car_range_entity", v), ["sensor"], "— select sensor —")}
-          <label class="ed-label">Odometer Sensor (total km)</label>
-          ${this._entitySearch("car_odo", cfg.car_odometer_entity, (v) => this._set("car_odometer_entity", v), ["sensor"], "— select sensor —")}
-          <label class="ed-label">Monthly Distance Sensor</label>
-          ${this._entitySearch("car_monthly", cfg.car_monthly_distance_entity, (v) => this._set("car_monthly_distance_entity", v), ["sensor"], "— select sensor —")}
-          <label class="ed-label">Monthly Trips Sensor (optional)</label>
-          ${this._entitySearch("car_trips", cfg.car_monthly_trips_entity, (v) => this._set("car_monthly_trips_entity", v), ["sensor"], "— select sensor —")}
-          <label class="ed-label">Doors Locked Sensor / Entity</label>
-          ${this._entitySearch("car_doors", cfg.car_doors_entity, (v) => this._set("car_doors_entity", v),
-            ["binary_sensor", "sensor", "lock"], "— select entity —")}
+        <div class="sub-section">
+          <div class="sub-title">Stats</div>
+          ${this._entityPicker("Range Sensor (km remaining)", cfg.car_range_entity, (v) => this._set("car_range_entity", v), ["sensor"])}
+          ${this._entityPicker("Odometer Sensor (total km)", cfg.car_odometer_entity, (v) => this._set("car_odometer_entity", v), ["sensor"])}
+          ${this._entityPicker("Monthly Distance Sensor", cfg.car_monthly_distance_entity, (v) => this._set("car_monthly_distance_entity", v), ["sensor"])}
+          ${this._entityPicker("Monthly Trips Sensor (optional)", cfg.car_monthly_trips_entity, (v) => this._set("car_monthly_trips_entity", v), ["sensor"])}
+          ${this._entityPicker("Doors Locked Sensor / Entity", cfg.car_doors_entity,
+            (v) => this._set("car_doors_entity", v), ["binary_sensor", "sensor", "lock"])}
           ${cfg.car_doors_entity ? html`
             <div class="toggle-row" style="margin-top:6px">
               <span class="ed-label" style="margin:0">
@@ -1374,113 +1392,78 @@ class GarageDashboardCardEditor extends LitElement {
             </p>
           ` : ""}
         </div>
-        <div class="section">
-          <div class="section-title">Action Buttons</div>
+        <div class="sub-section">
+          <div class="sub-title">Action Buttons</div>
           <p class="hint">These should be button.* entities. Pressing them calls button.press.</p>
-          <label class="ed-label">Update Data Button Entity</label>
-          ${this._entitySearch("car_update", cfg.car_update_entity, (v) => this._set("car_update_entity", v), ["button"], "— select button —")}
-          <label class="ed-label">Flash Lights Button Entity</label>
-          ${this._entitySearch("car_flash", cfg.car_flash_entity, (v) => this._set("car_flash_entity", v), ["button"], "— select button —")}
-          <label class="ed-label">Honk Horn Button Entity</label>
-          ${this._entitySearch("car_horn", cfg.car_horn_entity, (v) => this._set("car_horn_entity", v), ["button"], "— select button —")}
+          ${this._entityPicker("Update Data Button Entity", cfg.car_update_entity, (v) => this._set("car_update_entity", v), ["button"])}
+          ${this._entityPicker("Flash Lights Button Entity", cfg.car_flash_entity, (v) => this._set("car_flash_entity", v), ["button"])}
+          ${this._entityPicker("Honk Horn Button Entity", cfg.car_horn_entity, (v) => this._set("car_horn_entity", v), ["button"])}
         </div>
       ` : ""}
     `;
   }
 
-  // ── TAB: Appearance ──────────────────────────────────────────────────────────
-
-  _tabAppearance() {
-    const cfg = this._config;
-    return html`
-      <div class="section">
-        <div class="section-title">🎨 Frosted Glass Dark Mode</div>
-        ${this._toggle("Frosted Glass Mode", cfg.frosted_glass, (v) => this._set("frosted_glass", v))}
-        ${cfg.frosted_glass ? html`
-          <p class="hint">
-            The card background and all inner tiles use a translucent blur effect.
-            Works best when a dynamic wallpaper is visible behind Home Assistant.
-          </p>
-          <label class="ed-label">Glass Opacity</label>
-          <div class="range-row">
-            <input class="ed-range" type="range" min="0.1" max="0.9" step="0.01"
-              .value="${String(cfg.frosted_opacity || 0.52)}"
-              style="--rp:${Math.round(((cfg.frosted_opacity || 0.52) - 0.1) / 0.8 * 100)}%"
-              @input="${(e) => {
-                const v = parseFloat(e.target.value);
-                e.target.style.setProperty('--rp', Math.round((v - 0.1) / 0.8 * 100) + '%');
-                this._set('frosted_opacity', v);
-              }}" />
-            <span class="range-val">${(cfg.frosted_opacity || 0.52).toFixed(2)}</span>
-          </div>
-          <label class="ed-label">Blur Strength</label>
-          <div class="range-row">
-            <input class="ed-range" type="range" min="4" max="40" step="1"
-              .value="${String(cfg.frosted_blur || 22)}"
-              style="--rp:${Math.round(((cfg.frosted_blur || 22) - 4) / 36 * 100)}%"
-              @input="${(e) => {
-                const v = parseInt(e.target.value);
-                e.target.style.setProperty('--rp', Math.round((v - 4) / 36 * 100) + '%');
-                this._set('frosted_blur', v);
-              }}" />
-            <span class="range-val">${cfg.frosted_blur || 22}px</span>
-          </div>
-        ` : ""}
-      </div>
-    `;
-  }
-
   render() {
     if (!this._config) return html``;
-    const tabs = [
-      { id: "general",    label: "General"    },
-      { id: "appearance", label: "Appearance" },
-      { id: "colors",     label: "Colors"     },
-      { id: "devices",    label: "Devices"    },
-      { id: "car",        label: "Car"        },
-    ];
     return html`
       <div class="editor-root">
-        <div class="tab-bar">
-          ${tabs.map((t) => html`
-            <button class="tab-btn ${this._activeTab === t.id ? "active" : ""}"
-              @click="${() => (this._activeTab = t.id)}">${t.label}</button>
-          `)}
-        </div>
-        <div class="tab-content">
-          ${this._activeTab === "general"    ? this._tabGeneral()    : ""}
-          ${this._activeTab === "appearance" ? this._tabAppearance() : ""}
-          ${this._activeTab === "colors"     ? this._tabColors()     : ""}
-          ${this._activeTab === "devices"    ? this._tabDevices()    : ""}
-          ${this._activeTab === "car"        ? this._tabCar()        : ""}
-        </div>
+        ${this._accordion("general",    "mdi:home",           "General",    this._sectionGeneral())}
+        ${this._accordion("appearance", "mdi:palette",        "Appearance", this._sectionAppearance())}
+        ${this._accordion("colors",     "mdi:palette-swatch", "Colors",     this._sectionColors())}
+        ${this._accordion("devices",    "mdi:garage",         "Devices",    this._sectionDevices())}
+        ${this._accordion("car",        "mdi:car",            "Car",        this._sectionCar())}
       </div>
     `;
   }
 
   static get styles() {
     return css`
-      :host { display: block; font-family: 'Segoe UI', sans-serif; }
+      :host { display: block; font-family: var(--paper-font-body1_-_font-family, 'Segoe UI', sans-serif); }
       .editor-root { display: flex; flex-direction: column; }
 
-      .tab-bar { display: flex; flex-wrap: wrap; border-bottom: 1px solid rgba(0,0,0,0.15); background: var(--card-background-color, #1e293b); border-radius: 8px 8px 0 0; }
-      .tab-btn { flex: 1; min-width: 60px; padding: 8px 4px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; border: none; background: transparent; color: var(--secondary-text-color, #94a3b8); cursor: pointer; transition: background 0.15s, color 0.15s; text-transform: uppercase; }
-      .tab-btn.active { color: var(--primary-color, #f97316); border-bottom: 2px solid var(--primary-color, #f97316); background: rgba(249,115,22,0.06); }
+      /* ── Accordion ── */
+      .accordion { border-bottom: 1px solid var(--divider-color, rgba(0,0,0,0.12)); }
+      .accordion:last-child { border-bottom: none; }
+      .accordion-header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 16px; cursor: pointer;
+        transition: background 0.15s;
+        user-select: none;
+      }
+      .accordion-header:hover { background: rgba(249,115,22,0.06); }
+      .accordion.open > .accordion-header { background: rgba(249,115,22,0.08); }
+      .accordion-icon { color: var(--primary-color, #f97316); --mdc-icon-size: 22px; flex-shrink: 0; }
+      .accordion-label {
+        flex: 1; font-size: 0.78rem; font-weight: 600;
+        letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--primary-text-color, #e2e8f0);
+      }
+      .accordion-chevron { color: var(--secondary-text-color, #94a3b8); --mdc-icon-size: 20px; flex-shrink: 0; }
+      .accordion-body {
+        padding: 8px 16px 16px;
+        display: flex; flex-direction: column; gap: 4px;
+        background: var(--secondary-background-color, rgba(0,0,0,0.1));
+      }
 
-      .tab-content { padding: 12px 4px; display: flex; flex-direction: column; gap: 4px; }
-      .section { margin-bottom: 10px; }
-      .section-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--primary-color, #f97316); margin-bottom: 8px; padding-bottom: 4px; border-bottom: 1px solid rgba(249,115,22,0.2); }
+      /* ── Sub-sections inside accordion body ── */
+      .sub-section { margin-bottom: 14px; }
+      .sub-section:last-child { margin-bottom: 0; }
+      .sub-title {
+        font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+        letter-spacing: 0.08em; color: var(--primary-color, #f97316);
+        margin-bottom: 8px; padding-bottom: 4px;
+        border-bottom: 1px solid rgba(249,115,22,0.2);
+      }
       .hint { font-size: 0.73rem; color: var(--secondary-text-color, #94a3b8); margin: 0 0 8px; line-height: 1.5; }
 
-      .ed-label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--secondary-text-color, #64748b); margin-bottom: 3px; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+      .ed-label { display: block; font-size: 0.72rem; font-weight: 600; color: var(--secondary-text-color, #64748b); margin-bottom: 3px; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.05em; }
       .ed-input { width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--divider-color, #334155); border-radius: 6px; background: var(--secondary-background-color, #0f172a); color: var(--primary-text-color, #e2e8f0); box-sizing: border-box; transition: border-color 0.15s; }
       .ed-input:focus { outline: none; border-color: var(--primary-color, #f97316); }
 
       .ed-select { width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--divider-color, #334155); border-radius: 6px; background: var(--secondary-background-color, #0f172a); color: var(--primary-text-color, #e2e8f0); box-sizing: border-box; cursor: pointer; margin-top: 4px; }
 
-      .search-select-wrap { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
-      .search-input { font-size: 0.8rem; }
-      .selected-badge { font-size: 0.67rem; color: var(--primary-color, #f97316); background: rgba(249,115,22,0.1); border-radius: 4px; padding: 2px 6px; word-break: break-all; }
+      /* Native HA entity picker */
+      ha-entity-picker { display: block; margin-top: 4px; }
 
       .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; gap: 8px; }
       .toggle-wrap { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
@@ -1492,7 +1475,7 @@ class GarageDashboardCardEditor extends LitElement {
 
       .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-      /* Color stop editor */
+      /* ── Color stop editor ── */
       .gradient-bar { height: 10px; border-radius: 5px; margin-bottom: 10px; border: 1px solid var(--divider-color, #334155); }
       .stop-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
       .stop-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.15); }
@@ -1546,7 +1529,7 @@ class GarageDashboardCardEditor extends LitElement {
       .btn-remove-sm:disabled { opacity: 0.3; cursor: not-allowed; }
       .btn-reset { padding: 6px 10px; font-size: 0.72rem; font-weight: 600; border: 1px solid var(--divider-color, #334155); border-radius: 6px; background: transparent; color: var(--secondary-text-color, #94a3b8); cursor: pointer; }
 
-      /* Range slider */
+      /* ── Range slider ── */
       .range-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
       .range-val { font-size: 0.72rem; font-weight: 600; color: var(--primary-color, #f97316); font-family: monospace; min-width: 38px; text-align: right; flex-shrink: 0; }
       .ed-range {
