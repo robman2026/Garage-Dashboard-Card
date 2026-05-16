@@ -1030,12 +1030,12 @@ class GarageDashboardCardEditor extends LitElement {
 
   _entityPicker(label, value, onChange, includeDomains) {
     return html`
-      <label class="ed-label">${label}</label>
       <ha-entity-picker
         .hass="${this.hass}"
         .value="${value || ""}"
+        .label="${label}"
         .includeDomains="${includeDomains || []}"
-        allow-custom-entity
+        ?allow-custom-entity="${true}"
         @value-changed="${(e) => onChange(e.detail.value)}"
       ></ha-entity-picker>
     `;
@@ -1463,7 +1463,7 @@ class GarageDashboardCardEditor extends LitElement {
       .ed-select { width: 100%; padding: 7px 10px; font-size: 0.82rem; border: 1px solid var(--divider-color, #334155); border-radius: 6px; background: var(--secondary-background-color, #0f172a); color: var(--primary-text-color, #e2e8f0); box-sizing: border-box; cursor: pointer; margin-top: 4px; }
 
       /* Native HA entity picker */
-      ha-entity-picker { display: block; margin-top: 4px; }
+      ha-entity-picker { display: block; margin-top: 8px; margin-bottom: 4px; }
 
       .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; gap: 8px; }
       .toggle-wrap { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
