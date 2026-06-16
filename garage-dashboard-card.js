@@ -327,20 +327,20 @@ class GarageDashboardCard extends LitElement {
             <div class="entity-name">${name}</div>
             <div class="entity-sub" style="color:${color}">${label} · ${pos}% · ${ago}</div>
           </div>
-          <div class="cover-btns">
-            <button class="ctrl-btn" title="Open"
-              @click="${() => this._callService("cover", "open_cover", eid)}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zm8-16L4 9h4v7h8V9h4z"/></svg>
-            </button>
-            <button class="ctrl-btn ctrl-stop" title="Stop"
-              @click="${() => this._callService("cover", "stop_cover", eid)}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
-            </button>
-            <button class="ctrl-btn" title="Close"
-              @click="${() => this._callService("cover", "close_cover", eid)}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v2H4zm8 16l8-7h-4V7H8v6H4z"/></svg>
-            </button>
-          </div>
+        </div>
+        <div class="cover-seg">
+          <button class="seg-btn seg-open" title="Open"
+            @click="${() => this._callService("cover", "open_cover", eid)}">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zm8-16L4 9h4v7h8V9h4z"/></svg><span>Open</span>
+          </button>
+          <button class="seg-btn seg-stop" title="Stop"
+            @click="${() => this._callService("cover", "stop_cover", eid)}">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg><span>Stop</span>
+          </button>
+          <button class="seg-btn seg-close" title="Close"
+            @click="${() => this._callService("cover", "close_cover", eid)}">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v2H4zm8 16l8-7h-4V7H8v6H4z"/></svg><span>Close</span>
+          </button>
         </div>
       </div>
     `;
@@ -752,18 +752,22 @@ class GarageDashboardCard extends LitElement {
       .entity-sub  { font-size: .7rem; margin-top: 1px; }
       .entity-details { min-width: 0; }
       .entity-name, .entity-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .cover-btns  { display: flex; gap: 8px; flex-shrink: 0; }
-      .ctrl-btn {
-        width: 60px; height: 60px; border-radius: 14px;
-        border: 1px solid #334155; background: #1e293b; color: #94a3b8;
-        display: flex; align-items: center; justify-content: center; cursor: pointer;
-        transition: all 0.15s;
+      .cover-seg {
+        display: grid; grid-template-columns: 1fr 0.8fr 1fr; margin-top: 12px;
+        border: 1px solid #334155; border-radius: 12px; overflow: hidden; background: #1e293b;
       }
-      .ctrl-btn svg { width: 30px; height: 30px; }
-      .ctrl-btn:hover { background: #263348; color: #e2e8f0; }
-      .ctrl-btn:active { transform: scale(0.93); }
-      .ctrl-btn.ctrl-stop { border-color: #7f1d1d; background: #1c0e0e; color: #ef4444; }
-      .ctrl-btn.ctrl-stop:hover { background: #2d1010; }
+      .seg-btn {
+        display: flex; align-items: center; justify-content: center; gap: 7px;
+        height: 54px; border: none; background: transparent; cursor: pointer;
+        font-size: .85rem; font-weight: 600; color: #cbd5e1; transition: background 0.15s;
+      }
+      .seg-btn svg { width: 20px; height: 20px; }
+      .seg-btn + .seg-btn { border-left: 1px solid #334155; }
+      .seg-btn:hover  { background: #263348; }
+      .seg-btn:active { background: #2d3b52; }
+      .seg-open  { color: #22c55e; }
+      .seg-stop  { color: #f59e0b; }
+      .seg-close { color: #ef4444; }
 
       /* ── Camera ── */
       .camera-box {
@@ -895,13 +899,13 @@ class GarageDashboardCard extends LitElement {
       .card-frosted .entity-icon {
         background: rgba(255,255,255,0.06) !important;
       }
-      /* Cover control buttons */
-      .card-frosted .ctrl-btn {
+      /* Cover control segmented bar */
+      .card-frosted .cover-seg {
         background: rgba(255,255,255,0.05) !important;
         border-color: rgba(255,255,255,0.12) !important;
       }
-      .card-frosted .ctrl-btn:hover { background: rgba(255,255,255,0.1) !important; }
-      .card-frosted .ctrl-btn.ctrl-stop { background: rgba(239,68,68,0.08) !important; border-color: rgba(127,29,29,0.5) !important; }
+      .card-frosted .seg-btn + .seg-btn { border-left-color: rgba(255,255,255,0.12) !important; }
+      .card-frosted .seg-btn:hover { background: rgba(255,255,255,0.1) !important; }
       /* Toggle cards */
       .card-frosted .toggle-card {
         background: rgba(255,255,255,0.05) !important;
