@@ -750,14 +750,16 @@ class GarageDashboardCard extends LitElement {
       .entity-icon svg { width: 18px; height: 18px; }
       .entity-name { font-size: .82rem; font-weight: 600; color: #e2e8f0; }
       .entity-sub  { font-size: .7rem; margin-top: 1px; }
-      .cover-btns  { display: flex; gap: 5px; }
+      .entity-details { min-width: 0; }
+      .entity-name, .entity-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .cover-btns  { display: flex; gap: 8px; flex-shrink: 0; }
       .ctrl-btn {
-        width: 30px; height: 30px; border-radius: 7px;
+        width: 60px; height: 60px; border-radius: 14px;
         border: 1px solid #334155; background: #1e293b; color: #94a3b8;
         display: flex; align-items: center; justify-content: center; cursor: pointer;
         transition: all 0.15s;
       }
-      .ctrl-btn svg { width: 15px; height: 15px; }
+      .ctrl-btn svg { width: 30px; height: 30px; }
       .ctrl-btn:hover { background: #263348; color: #e2e8f0; }
       .ctrl-btn:active { transform: scale(0.93); }
       .ctrl-btn.ctrl-stop { border-color: #7f1d1d; background: #1c0e0e; color: #ef4444; }
