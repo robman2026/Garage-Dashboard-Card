@@ -327,20 +327,20 @@ class GarageDashboardCard extends LitElement {
             <div class="entity-name">${name}</div>
             <div class="entity-sub" style="color:${color}">${label} · ${pos}% · ${ago}</div>
           </div>
-          <div class="cover-btns">
-            <button class="ctrl-btn" title="Open"
-              @click="${() => this._callService("cover", "open_cover", eid)}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zm8-16L4 9h4v7h8V9h4z"/></svg>
-            </button>
-            <button class="ctrl-btn ctrl-stop" title="Stop"
-              @click="${() => this._callService("cover", "stop_cover", eid)}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>
-            </button>
-            <button class="ctrl-btn" title="Close"
-              @click="${() => this._callService("cover", "close_cover", eid)}">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v2H4zm8 16l8-7h-4V7H8v6H4z"/></svg>
-            </button>
-          </div>
+        </div>
+        <div class="cover-seg">
+          <button class="seg-btn seg-open" title="Open"
+            @click="${() => this._callService("cover", "open_cover", eid)}">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 18h16v2H4zm8-16L4 9h4v7h8V9h4z"/></svg><span>Open</span>
+          </button>
+          <button class="seg-btn seg-stop" title="Stop"
+            @click="${() => this._callService("cover", "stop_cover", eid)}">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg><span>Stop</span>
+          </button>
+          <button class="seg-btn seg-close" title="Close"
+            @click="${() => this._callService("cover", "close_cover", eid)}">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16v2H4zm8 16l8-7h-4V7H8v6H4z"/></svg><span>Close</span>
+          </button>
         </div>
       </div>
     `;
@@ -695,126 +695,136 @@ class GarageDashboardCard extends LitElement {
 
       ha-card { background: transparent; box-shadow: none; border: none; }
       .card {
-        background: #0f172a;
-        border-radius: 16px;
+        background: radial-gradient(140% 100% at 0% 0%, #1a1410 0%, #050505 60%);
+        border-radius: 18px;
         overflow: hidden;
-        color: #e2e8f0;
-        box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-        border: 1px solid #1e293b;
+        color: #f4ead2;
+        box-shadow: 0 0 0 1px rgba(255,191,89,0.25), 0 4px 30px rgba(0,0,0,0.7), 0 0 36px rgba(212,160,23,0.12);
+        border: 1px solid transparent;
       }
 
       /* ── Header ── */
       .card-header {
         display: flex; align-items: center; gap: 10px;
         padding: 14px 16px 11px;
-        border-bottom: 1px solid #1e293b;
+        border-bottom: 1px solid rgba(255,191,89,0.18);
+        background: linear-gradient(180deg, rgba(255,191,89,0.06), transparent);
       }
-      .header-icon { width: 20px; height: 20px; color: #f97316; flex-shrink: 0; }
-      .card-title { font-size: 1rem; font-weight: 700; letter-spacing: .06em; color: #f1f5f9; flex: 1; text-transform: uppercase; }
+      .header-icon { width: 20px; height: 20px; color: #ffc857; flex-shrink: 0; filter: drop-shadow(0 0 4px rgba(255,200,87,0.6)); }
+      .card-title { font-size: 1rem; font-weight: 700; letter-spacing: .1em; color: #ffd98a; flex: 1; text-transform: uppercase; text-shadow: 0 0 12px rgba(255,200,87,0.35); }
       .status-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
       .dot-open   { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.7); }
       .dot-closed { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.6); }
 
       /* ── Section wrapper ── */
       .section { padding: 10px 14px; }
-      .section + .section { border-top: 1px solid #1e293b; }
+      .section + .section { border-top: 1px solid rgba(255,191,89,0.12); }
 
       /* ── Climate tiles (room-card style) ── */
       .climate-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
       .sensor-tile {
-        background: #1e293b; border-radius: 12px; padding: 10px;
+        background: rgba(255,255,255,0.025); border-radius: 14px; padding: 10px;
         display: flex; align-items: center; gap: 10px; min-width: 0;
-        border: 1px solid rgba(255,255,255,0.06);
-        transition: background 0.2s;
+        border: 1px solid rgba(255,191,89,0.22);
+        box-shadow: inset 0 0 14px rgba(255,191,89,0.04);
+        transition: all 0.2s;
       }
-      .sensor-tile:hover { background: #263348; }
+      .sensor-tile:hover { background: rgba(255,191,89,0.06); border-color: rgba(255,191,89,0.55); box-shadow: 0 0 16px rgba(255,191,89,0.18); }
       .gauge-wrap { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
       .gauge-center {
         position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
         display: flex; flex-direction: column; align-items: center; pointer-events: none;
       }
       .gauge-val-sm  { font-size: 10px; font-weight: 700; line-height: 1; }
-      .gauge-unit-sm { font-size: 6px; color: rgba(255,255,255,0.5); }
+      .gauge-unit-sm { font-size: 6px; color: rgba(255,217,138,0.55); }
       .sensor-info   { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
       .sensor-value  { font-size: 18px; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .sensor-unit   { font-size: 11px; font-weight: 400; }
-      .sensor-label  { font-size: 9px; letter-spacing: 1.4px; color: rgba(255,255,255,0.3); text-transform: uppercase; margin-top: 2px; }
+      .sensor-label  { font-size: 9px; letter-spacing: 1.4px; color: rgba(255,217,138,0.45); text-transform: uppercase; margin-top: 2px; }
 
       /* ── Cover row ── */
-      .cover-section { border-top: 1px solid #1e293b; }
+      .cover-section { border-top: 1px solid rgba(255,191,89,0.12); }
       .cover-row { display: flex; align-items: center; gap: 10px; }
       .entity-icon {
-        width: 34px; height: 34px; background: #1e293b; border-radius: 8px;
-        display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #94a3b8;
+        width: 34px; height: 34px; background: rgba(255,255,255,0.03); border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #ffc857;
+        border: 1px solid rgba(255,191,89,0.3); box-shadow: 0 0 10px rgba(255,191,89,0.12);
       }
       .entity-icon svg { width: 18px; height: 18px; }
-      .entity-name { font-size: .82rem; font-weight: 600; color: #e2e8f0; }
+      .entity-name { font-size: .82rem; font-weight: 600; color: #f4ead2; }
       .entity-sub  { font-size: .7rem; margin-top: 1px; }
-      .cover-btns  { display: flex; gap: 5px; }
-      .ctrl-btn {
-        width: 30px; height: 30px; border-radius: 7px;
-        border: 1px solid #334155; background: #1e293b; color: #94a3b8;
-        display: flex; align-items: center; justify-content: center; cursor: pointer;
-        transition: all 0.15s;
+      .entity-details { min-width: 0; }
+      .entity-name, .entity-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .cover-seg {
+        display: grid; grid-template-columns: 1fr 0.8fr 1fr; margin-top: 12px;
+        border: 1px solid rgba(255,191,89,0.35); border-radius: 14px; overflow: hidden;
+        background: rgba(255,255,255,0.02); box-shadow: 0 0 18px rgba(255,191,89,0.1);
       }
-      .ctrl-btn svg { width: 15px; height: 15px; }
-      .ctrl-btn:hover { background: #263348; color: #e2e8f0; }
-      .ctrl-btn:active { transform: scale(0.93); }
-      .ctrl-btn.ctrl-stop { border-color: #7f1d1d; background: #1c0e0e; color: #ef4444; }
-      .ctrl-btn.ctrl-stop:hover { background: #2d1010; }
+      .seg-btn {
+        display: flex; align-items: center; justify-content: center; gap: 7px;
+        height: 54px; border: none; background: transparent; cursor: pointer;
+        font-size: .85rem; font-weight: 600; color: #e8d2a0; transition: background 0.15s;
+      }
+      .seg-btn svg { width: 20px; height: 20px; }
+      .seg-btn + .seg-btn { border-left: 1px solid rgba(255,191,89,0.2); }
+      .seg-btn:hover  { background: rgba(255,191,89,0.08); }
+      .seg-btn:active { background: rgba(255,191,89,0.14); }
+      .seg-open  { color: #22c55e; }
+      .seg-stop  { color: #f59e0b; }
+      .seg-close { color: #ef4444; }
 
       /* ── Camera ── */
       .camera-box {
-        border-radius: 12px; overflow: hidden; position: relative;
-        background: #0a0e1a; border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px; overflow: hidden; position: relative;
+        background: #050505; border: 1px solid rgba(255,191,89,0.25);
       }
       room-card-stream, garage-cam-stream { display: block; width: 100%; }
       .cam-overlay {
         position: absolute; bottom: 0; left: 0; right: 0;
         padding: 6px 10px;
-        background: linear-gradient(transparent, rgba(0,0,0,0.6));
+        background: linear-gradient(transparent, rgba(0,0,0,0.7));
         display: flex; justify-content: space-between; align-items: center;
       }
-      .cam-label { font-size: .6rem; color: rgba(255,255,255,0.5); letter-spacing: .08em; text-transform: uppercase; }
+      .cam-label { font-size: .6rem; color: #ffd98a; letter-spacing: .08em; text-transform: uppercase; }
       .cam-live  { font-size: .58rem; color: #f87171; border: 1px solid rgba(248,113,113,.4); padding: 1px 5px; border-radius: 3px; font-weight: 600; }
-      .camera-unavail { display: flex; align-items: center; justify-content: center; padding: 20px; color: rgba(255,255,255,0.3); font-size: .75rem; }
+      .camera-unavail { display: flex; align-items: center; justify-content: center; padding: 20px; color: rgba(255,217,138,0.3); font-size: .75rem; }
 
       /* ── Toggles ── */
       .toggles-row { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
       .toggle-card {
-        background: #1e293b; border-radius: 12px; padding: 11px 10px;
+        background: rgba(255,255,255,0.025); border-radius: 14px; padding: 11px 10px;
         display: flex; flex-direction: column; align-items: center; gap: 5px;
-        border: 1px solid transparent; cursor: pointer; transition: all 0.2s;
+        border: 1px solid rgba(255,191,89,0.22); cursor: pointer; transition: all 0.2s;
         -webkit-tap-highlight-color: transparent;
       }
-      .toggle-card:hover { background: #263348; }
+      .toggle-card:hover { background: rgba(255,191,89,0.06); }
       .toggle-card:active { transform: scale(0.97); }
-      .toggle-card.active { border-color: #f97316; background: #1c130a; }
-      .toggle-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #64748b; }
-      .toggle-card.active .toggle-icon { color: #f97316; }
+      .toggle-card.active { border-color: #ffc857; background: rgba(255,191,89,0.1); box-shadow: 0 0 18px rgba(255,191,89,0.25); }
+      .toggle-icon { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: rgba(255,217,138,0.4); }
+      .toggle-card.active .toggle-icon { color: #ffc857; }
       .toggle-icon svg { width: 18px; height: 18px; }
-      .toggle-label { font-size: .65rem; color: #94a3b8; text-align: center; }
-      .toggle-state { font-size: .62rem; color: #475569; font-weight: 600; }
-      .toggle-card.active .toggle-state { color: #f97316; }
+      .toggle-label { font-size: .65rem; color: rgba(255,217,138,0.6); text-align: center; }
+      .toggle-state { font-size: .62rem; color: rgba(255,217,138,0.3); font-weight: 600; }
+      .toggle-card.active .toggle-state { color: #ffc857; }
 
       /* ── Sensor chips ── */
       .sensors-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
       .sensor-chip {
-        background: #1e293b; border-radius: 10px; padding: 8px 6px;
+        background: rgba(255,255,255,0.025); border-radius: 12px; padding: 8px 6px;
         display: flex; flex-direction: column; align-items: center; gap: 3px;
-        border: 1px solid transparent; transition: all 0.2s;
+        border: 1px solid rgba(255,191,89,0.22); transition: all 0.2s;
       }
-      .sensor-chip:hover { background: #263348; }
-      .sensor-chip.active { border-color: #f59e0b; background: #1c1a0a; }
-      .sensor-chip svg { color: #475569; }
-      .sensor-chip.active svg { color: #f59e0b; }
+      .sensor-chip:hover { background: rgba(255,191,89,0.06); }
+      .sensor-chip.active { border-color: #ffc857; background: rgba(255,191,89,0.1); box-shadow: 0 0 14px rgba(255,191,89,0.2); }
+      .sensor-chip svg { color: rgba(255,217,138,0.4); }
+      .sensor-chip.active svg { color: #ffc857; }
       .chip-icon { display:flex; align-items:center; justify-content:center; }
-      .sensor-chip-name { font-size: .6rem; color: #94a3b8; text-align: center; font-weight: 600; }
-      .sensor-chip-time { font-size: .56rem; color: #64748b; text-align: center; }
-      .sensor-chip.active .sensor-chip-name { color: #fcd34d; }
+      .sensor-chip-name { font-size: .6rem; color: rgba(255,217,138,0.6); text-align: center; font-weight: 600; }
+      .sensor-chip-time { font-size: .56rem; color: rgba(255,217,138,0.3); text-align: center; }
+      .sensor-chip.active .sensor-chip-name { color: #ffd98a; }
 
       /* ── Car section ── */
-      .car-section { border-top: 1px solid #1e293b; }
+      .car-section { border-top: 1px solid rgba(255,191,89,0.12); }
       .car-header  { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 
       /* ── Car image layouts ── */
@@ -822,24 +832,25 @@ class GarageDashboardCard extends LitElement {
       .car-side-stats  { display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
       .car-img-side    {
         width: 140px; flex-shrink: 0;
-        background: linear-gradient(160deg, #1a2035 0%, #0d1120 100%);
-        border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+        background: radial-gradient(120% 120% at 20% 0%, #1a1410 0%, #050505 100%);
+        border-radius: 14px; border: 1px solid rgba(255,191,89,0.22);
         display: flex; align-items: center; justify-content: center; overflow: hidden;
       }
       .car-img-side img { width: 100%; height: 100%; object-fit: contain; }
       .car-img-banner  {
         width: 100%;
-        background: linear-gradient(160deg, #1a2035 0%, #0d1120 100%);
-        border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);
+        background: radial-gradient(120% 120% at 20% 0%, #1a1410 0%, #050505 100%);
+        border-radius: 14px; border: 1px solid rgba(255,191,89,0.22);
         overflow: hidden; margin-bottom: 8px;
         display: flex; align-items: center; justify-content: center;
       }
       .car-img-banner img { width: 100%; height: 100%; object-fit: contain; }
       .car-icon-box {
-        width: 32px; height: 32px; background: #1e293b; border-radius: 8px;
-        display: flex; align-items: center; justify-content: center; color: #60a5fa; flex-shrink: 0;
+        width: 32px; height: 32px; background: rgba(255,255,255,0.03); border-radius: 10px;
+        display: flex; align-items: center; justify-content: center; color: #ffc857; flex-shrink: 0;
+        border: 1px solid rgba(255,191,89,0.3);
       }
-      .car-name { font-size: .85rem; font-weight: 700; color: #e2e8f0; flex: 1; letter-spacing: .04em; }
+      .car-name { font-size: .85rem; font-weight: 700; color: #f4ead2; flex: 1; letter-spacing: .04em; }
       .car-location-badge {
         font-size: .62rem; font-weight: 700; padding: 3px 9px; border-radius: 20px;
         cursor: pointer; flex-shrink: 0;
@@ -848,25 +859,25 @@ class GarageDashboardCard extends LitElement {
         display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 8px;
       }
       .car-stat {
-        background: #1e293b; border-radius: 10px; padding: 9px 10px;
-        border: 1px solid rgba(255,255,255,0.05); transition: background 0.15s;
+        background: rgba(255,255,255,0.025); border-radius: 12px; padding: 9px 10px;
+        border: 1px solid rgba(255,191,89,0.2); transition: background 0.15s;
       }
-      .car-stat:hover { background: #263348; }
-      .car-stat-val  { font-size: .9rem; font-weight: 700; color: #e2e8f0; line-height: 1; }
-      .car-stat-unit { font-size: .65rem; color: #94a3b8; font-weight: 400; }
-      .car-stat-lbl  { font-size: .58rem; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
-      .car-stat-sub  { font-size: .62rem; color: #94a3b8; margin-top: 1px; }
+      .car-stat:hover { background: rgba(255,191,89,0.06); }
+      .car-stat-val  { font-size: .9rem; font-weight: 700; color: #f4ead2; line-height: 1; }
+      .car-stat-unit { font-size: .65rem; color: rgba(255,217,138,0.5); font-weight: 400; }
+      .car-stat-lbl  { font-size: .58rem; color: rgba(255,217,138,0.35); text-transform: uppercase; letter-spacing: .05em; margin-top: 3px; }
+      .car-stat-sub  { font-size: .62rem; color: rgba(255,217,138,0.5); margin-top: 1px; }
       .car-actions   { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
       .car-action-btn {
-        background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+        background: rgba(255,255,255,0.025); border: 1px solid rgba(255,191,89,0.22); border-radius: 12px;
         padding: 8px 6px; display: flex; flex-direction: column; align-items: center; gap: 4px;
         cursor: pointer; transition: all 0.15s; font-family: inherit;
         -webkit-tap-highlight-color: transparent;
       }
-      .car-action-btn svg { color: #60a5fa; }
-      .car-action-btn:hover { background: #263348; border-color: #60a5fa; }
+      .car-action-btn svg { color: #ffc857; }
+      .car-action-btn:hover { background: rgba(255,191,89,0.08); border-color: #ffc857; box-shadow: 0 0 14px rgba(255,191,89,0.2); }
       .car-action-btn:active { transform: scale(0.95); }
-      .car-action-lbl { font-size: .6rem; color: #94a3b8; text-align: center; }
+      .car-action-lbl { font-size: .6rem; color: rgba(255,217,138,0.55); text-align: center; }
 
       /* ── Frosted Glass (activated by .card-frosted) ── */
       :host {
@@ -893,13 +904,13 @@ class GarageDashboardCard extends LitElement {
       .card-frosted .entity-icon {
         background: rgba(255,255,255,0.06) !important;
       }
-      /* Cover control buttons */
-      .card-frosted .ctrl-btn {
+      /* Cover control segmented bar */
+      .card-frosted .cover-seg {
         background: rgba(255,255,255,0.05) !important;
         border-color: rgba(255,255,255,0.12) !important;
       }
-      .card-frosted .ctrl-btn:hover { background: rgba(255,255,255,0.1) !important; }
-      .card-frosted .ctrl-btn.ctrl-stop { background: rgba(239,68,68,0.08) !important; border-color: rgba(127,29,29,0.5) !important; }
+      .card-frosted .seg-btn + .seg-btn { border-left-color: rgba(255,255,255,0.12) !important; }
+      .card-frosted .seg-btn:hover { background: rgba(255,255,255,0.1) !important; }
       /* Toggle cards */
       .card-frosted .toggle-card {
         background: rgba(255,255,255,0.05) !important;
@@ -907,7 +918,7 @@ class GarageDashboardCard extends LitElement {
         -webkit-backdrop-filter: blur(var(--gdc-fg-blur)) !important;
       }
       .card-frosted .toggle-card:hover { background: rgba(255,255,255,0.09) !important; }
-      .card-frosted .toggle-card.active { background: rgba(249,115,22,0.1) !important; border-color: #f97316 !important; }
+      .card-frosted .toggle-card.active { background: rgba(255,191,89,0.12) !important; border-color: #ffc857 !important; }
       /* Sensor chips */
       .card-frosted .sensor-chip {
         background: rgba(255,255,255,0.05) !important;
@@ -915,7 +926,7 @@ class GarageDashboardCard extends LitElement {
         -webkit-backdrop-filter: blur(var(--gdc-fg-blur)) !important;
       }
       .card-frosted .sensor-chip:hover { background: rgba(255,255,255,0.09) !important; }
-      .card-frosted .sensor-chip.active { background: rgba(245,158,11,0.08) !important; border-color: #f59e0b !important; }
+      .card-frosted .sensor-chip.active { background: rgba(255,191,89,0.1) !important; border-color: #ffc857 !important; }
       /* Car stat tiles */
       .card-frosted .car-stat {
         background: rgba(255,255,255,0.05) !important;
@@ -929,7 +940,7 @@ class GarageDashboardCard extends LitElement {
         background: rgba(255,255,255,0.05) !important;
         border-color: rgba(255,255,255,0.12) !important;
       }
-      .card-frosted .car-action-btn:hover { background: rgba(96,165,250,0.1) !important; border-color: #60a5fa !important; }
+      .card-frosted .car-action-btn:hover { background: rgba(255,191,89,0.1) !important; border-color: #ffc857 !important; }
       /* Car icon box */
       .card-frosted .car-icon-box { background: rgba(255,255,255,0.06) !important; }
     `;
