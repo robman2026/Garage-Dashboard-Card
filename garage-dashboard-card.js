@@ -974,6 +974,15 @@ class GarageDashboardCard extends LitElement {
       .card-frosted .car-action-btn:hover { background: rgba(255,191,89,0.1) !important; border-color: #ffc857 !important; }
       /* Car icon box */
       .card-frosted .car-icon-box { background: rgba(255,255,255,0.06) !important; }
+
+      /* ── Just HA Dashboard design adoption ──────────────────────────────
+         Gated on --user-* tokens (defined only by the Just HA theme). Falls
+         back to the card's original look on every other dashboard/theme. */
+      .card {
+        background: var(--user-glow-amber, transparent), var(--user-ink-750, radial-gradient(140% 100% at 0% 0%, #1a1410 0%, #050505 60%)) !important;
+        border: 1px solid var(--user-line, transparent) !important;
+        border-radius: var(--user-radius-lg, 18px) !important;
+      }
     `;
   }
 
