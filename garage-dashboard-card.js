@@ -626,6 +626,10 @@ class GarageDashboardCard extends LitElement {
     return html`
       <ha-card>
         <div class="${this._config.frosted_glass ? 'card card-frosted' : 'card'}">
+          <div class="card-body ${cfg.show_car ? 'has-car' : ''}">
+
+          <!-- LEFT COLUMN: everything up to the Car -->
+          <div class="col-main">
 
           <!-- Header -->
           <div class="card-header">
@@ -679,9 +683,14 @@ class GarageDashboardCard extends LitElement {
             </div>
           </div>
 
-          <!-- Car -->
-          ${this._renderCar()}
+          </div><!-- /col-main -->
 
+          <!-- RIGHT COLUMN: the Car -->
+          <div class="col-car">
+          ${this._renderCar()}
+          </div><!-- /col-car -->
+
+          </div><!-- /card-body -->
         </div>
       </ha-card>
     `;
@@ -701,6 +710,28 @@ class GarageDashboardCard extends LitElement {
         color: #f4ead2;
         box-shadow: 0 0 0 1px rgba(255,191,89,0.25), 0 4px 30px rgba(0,0,0,0.7), 0 0 36px rgba(212,160,23,0.12);
         border: 1px solid transparent;
+        container-type: inline-size;
+      }
+
+      /* ── Responsive layout ── */
+      /* Mobile / narrow: single stacked column (default). */
+      .card-body { display: block; }
+      .col-main, .col-car { min-width: 0; }
+      /* Desktop / wide card: split into two columns —
+         everything up to the Car on the left, the Car on the right. */
+      @container (min-width: 640px) {
+        .card-body.has-car {
+          display: grid;
+          grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.95fr);
+          align-items: stretch;
+        }
+        .card-body.has-car .col-car {
+          border-left: 1px solid rgba(255,191,89,0.18);
+        }
+        .card-body.has-car .col-car .car-section {
+          border-top: none;
+          height: 100%;
+        }
       }
 
       /* ── Header ── */
