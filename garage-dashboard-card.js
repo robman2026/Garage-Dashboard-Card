@@ -625,7 +625,7 @@ class GarageDashboardCard extends LitElement {
 
     return html`
       <ha-card>
-        <div class="${this._config.frosted_glass ? 'card card-frosted' : 'card'}">
+        <div class="card${this._config.frosted_glass ? ' card-frosted' : ''}${this._config.jha ? ' card-jha' : ''}">
           <div class="card-body ${cfg.show_car ? 'has-car' : ''}">
 
           <!-- LEFT COLUMN: everything up to the Car -->
@@ -978,9 +978,9 @@ class GarageDashboardCard extends LitElement {
       /* ── Just HA Dashboard design adoption ──────────────────────────────
          Gated on --user-* tokens (defined only by the Just HA theme). Falls
          back to the card's original look on every other dashboard/theme. */
-      .card {
-        background: var(--user-glow-amber, transparent), var(--user-ink-750, radial-gradient(140% 100% at 0% 0%, #1a1410 0%, #050505 60%)) !important;
-        border: 1px solid var(--user-line, transparent) !important;
+      .card-jha {
+        background: var(--user-glow-amber, radial-gradient(120% 130% at 50% -10%, rgba(224,162,78,.30) 0%, rgba(160,104,43,.10) 38%, rgba(20,20,23,0) 72%)), var(--user-ink-750, #141417) !important;
+        border: 1px solid var(--user-line, rgba(255,255,255,.09)) !important;
         border-radius: var(--user-radius-lg, 18px) !important;
       }
     `;
@@ -1180,6 +1180,7 @@ class GarageDashboardCardEditor extends LitElement {
   _sectionAppearance() {
     const cfg = this._config;
     return html`
+      ${this._sel("✨ Just HA Design", cfg.jha, { boolean: {} }, (v) => this._set("jha", v))}
       ${this._sel("Frosted Glass Mode", cfg.frosted_glass, { boolean: {} }, (v) => this._set("frosted_glass", v))}
       ${cfg.frosted_glass ? html`
         <p class="hint">
